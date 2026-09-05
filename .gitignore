@@ -1,0 +1,10 @@
+node_modules/
+netlify/node_modules
+.kilocode/
+.commandcode/
+dist/
+dist-check/
+.env
+*.log
+.DS_Store
+Thumbs.db

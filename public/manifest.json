@@ -1,0 +1,44 @@
+{
+  "name": "Kilo Voice Translator",
+  "short_name": "Kilo",
+  "description": "即時語音翻譯應用 — Real-time voice translation",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#0EA5E9",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["utilities", "education"],
+  "shortcuts": [
+    {
+      "name": "語音翻譯",
+      "short_name": "語音",
+      "url": "/?mode=voice",
+      "description": "開啟語音翻譯模式"
+    },
+    {
+      "name": "文字翻譯",
+      "short_name": "文字",
+      "url": "/?mode=text",
+      "description": "開啟文字翻譯模式"
+    }
+  ]
+}

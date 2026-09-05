@@ -1,0 +1,49 @@
+{
+  "name": "kilo-voice-translator",
+  "version": "3.0.0",
+  "type": "module",
+  "description": "Kilo 即時語音翻譯器 - 模組化 Vite 架構，支援 OpenRouter + BigModel 雙 API，可部署於 Zeabur / Netlify",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server.js",
+    "dev:netlify": "npx --yes netlify-cli@17 dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "test:deploy": "node test-deployment.js"
+  },
+  "dependencies": {
+    "busboy": "^1.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "eslint": "^9.0.0",
+    "terser": "^5.36.0",
+    "jsdom": "^25.0.0"
+  },
+  "keywords": [
+    "translation",
+    "voice",
+    "ai",
+    "openrouter",
+    "asr",
+    "zeabur",
+    "dual-api-key",
+    "security"
+  ],
+  "author": "Kilo Code",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

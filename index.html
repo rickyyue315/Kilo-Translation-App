@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="Kilo 即時語音翻譯器 - 基於 AI 技術的即時語音翻譯應用程式">
+    <meta name="keywords" content="語音翻譯, AI 翻譯, 即時翻譯, 語音辨識, 語音合成">
+    <meta name="author" content="Kilo Code">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kilo 翻譯器">
+    <title>Kilo 即時語音翻譯器</title>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>
+                    <span class="logo-mark" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    </span>
+                    <span data-i18n="appTitle">Kilo 即時語音翻譯器</span>
+                </h1>
+                <div class="header-actions">
+                    <button type="button" class="settings-toggle" id="settingsToggle" aria-expanded="false" aria-controls="settingsPanel">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <span data-i18n="settings">設定</span>
+                    </button>
+                    <button type="button" class="icon-btn" id="helpBtn" data-i18n-title="keyboardShortcuts" aria-label="鍵盤快捷鍵" title="鍵盤快捷鍵">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                    </button>
+                </div>
+            </div>
+            <p class="subtitle" data-i18n="appSubtitle">使用 AI 技術實現即時語音翻譯</p>
+        </header>
+
+        <div class="error-message" id="errorMessage" role="alert" aria-live="polite"></div>
+
+        <section class="model-bar" id="modelBar">
+            <div class="model-bar-main model-bar-row">
+                <div class="model-bar-field">
+                    <label for="aiModel" class="form-label" data-i18n="aiModelLabel">AI 模型</label>
+                    <select id="aiModel" class="form-input model-select">
+                    <optgroup label="高性價比模型">
+                        <option value="google/gemini-3.1-flash-lite" selected>Google Gemini 3.1 Flash Lite</option>
+                        <option value="openai/gpt-5.4-nano">OpenAI GPT-5.4 Nano</option>
+                        <option value="qwen/qwen3.6-flash">Qwen 3.6 Flash</option>
+                        <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash</option>
+                        <option value="x-ai/grok-4.3">X-AI Grok 4.3</option>
+                    </optgroup>
+                    <optgroup label="頂級模型">
+                        <option value="openai/gpt-5.4-mini">OpenAI GPT-5.4 Mini</option>
+                        <option value="google/gemini-3.5-flash">Google Gemini 3.5 Flash</option>
+                        <option value="z-ai/glm-5.1">智譜 GLM-5.1</option>
+                        <option value="qwen/qwen3.7-plus">Qwen 3.7 Plus</option>
+                        <option value="xiaomi/mimo-v2.5">Xiaomi MiMo V2.5</option>
+                    </optgroup>
+                    <optgroup label="免費選項">
+                        <option value="google/gemma-4-26b-a4b-it:free">Google Gemma 4 26B A4B</option>
+                        <option value="google/gemma-4-31b-it:free">Google Gemma 4 31B</option>
+                        <option value="nvidia/nemotron-3-super-120b-a12b:free">NVIDIA Nemotron 3 Super 120B</option>
+                        <option value="z-ai/glm-4.5-air:free">智譜 GLM-4.5 Air</option>
+                        <option value="openai/gpt-oss-120b:free">OpenAI GPT-OSS 120B</option>
+                        <option value="qwen/qwen3-coder:free">Qwen3 Coder</option>
+                    </optgroup>
+                    <optgroup label="自定義模型">
+                        <option value="custom">自定義模型...</option>
+                    </optgroup>
+                </select>
+                </div>
+                <div class="model-bar-field">
+                    <label for="asrModel" class="form-label" data-i18n="asrModelLabel">語音辨識模型</label>
+                    <select id="asrModel" class="form-input model-select">
+                        <option value="mistralai/voxtral-mini-transcribe" selected>Voxtral Mini Transcribe (Mistral)</option>
+                        <option value="microsoft/mai-transcribe-2">MAI-Transcribe 2 (Microsoft)</option>
+                        <option value="qwen/qwen3-asr-1.7b">Qwen3 ASR 1.7B</option>
+                        <option value="nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b">Nemotron 3.5 ASR Streaming 0.6B (NVIDIA)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="model-bar-meta">
+                <p class="model-meta" id="modelDescription">Google Gemini 3.1 Flash Lite：超低價格輕量模型，適合大量翻譯任務</p>
+                <p class="model-meta" id="asrModelDescription">Voxtral Mini Transcribe：Mistral 輕量語音轉文字，適合會議/語音筆記/播客</p>
+                <p class="model-meta"><a href="https://openrouter.ai/models" target="_blank" rel="noopener" data-i18n="referenceModelList">OpenRouter 官方模型列表</a></p>
+            </div>
+            <div id="customModelContainer" class="hidden model-bar-custom">
+                <label for="customModelInput" class="form-label">
+                    自定義模型 ID
+                    <span class="tooltip" aria-label="說明">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                        <span class="tooltiptext">輸入 OpenRouter 支援的任意模型 ID，如：openai/gpt-4o-turbo</span>
+                    </span>
+                </label>
+                <input type="text" id="customModelInput" class="form-input" placeholder="例如：openai/gpt-4o-turbo">
+            </div>
+        </section>
+
+        <section class="settings-panel" id="settingsPanel" aria-labelledby="settingsToggle">
+            <div class="settings-grid">
+                <div class="settings-section">
+                    <label class="form-label" data-i18n="interfaceLanguageLabel">介面語言</label>
+                    <select id="interfaceLanguage">
+                        <option value="zh-TW" selected>繁體中文</option>
+                        <option value="zh-CN">简体中文</option>
+                        <option value="en-US">English</option>
+                        <option value="ja-JP">日本語</option>
+                        <option value="ko-KR">한국어</option>
+                    </select>
+                </div>
+
+                <div class="settings-section">
+                    <label class="form-label" data-i18n="translationService">翻譯服務</label>
+                    <div class="radio-group compact">
+                        <label class="form-label-inline">
+                            <input type="radio" name="translationService" value="openrouter" checked id="openrouterService">
+                            <span data-i18n="openrouterService">OpenRouter</span>
+                        </label>
+                        <label class="form-label-inline">
+                            <input type="radio" name="translationService" value="bigmodel" id="bigmodelService">
+                            <span data-i18n="bigmodelService">BigModel</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <label class="form-label" data-i18n="apiKeySource">API 金鑰</label>
+                    <div class="radio-group compact">
+                        <label class="form-label-inline">
+                            <input type="radio" name="apiKeySource" value="server" checked id="serverApiKey">
+                            <span data-i18n="useServerKey">伺服器</span>
+                        </label>
+                        <label class="form-label-inline">
+                            <input type="radio" name="apiKeySource" value="user" id="userApiKey">
+                            <span data-i18n="useUserKey">自訂</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section" id="translationModeSection">
+                    <label class="form-label" data-i18n="translationMode">模式</label>
+                    <div class="radio-group compact">
+                        <label class="form-label-inline">
+                            <input type="radio" name="translationMode" value="stream" checked id="streamMode">
+                            <span data-i18n="streamMode">流式</span>
+                        </label>
+                        <label class="form-label-inline">
+                            <input type="radio" name="translationMode" value="standard" id="standardMode">
+                            <span data-i18n="standardMode">標準</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section compact">
+                    <label class="form-label-inline">
+                        <input type="checkbox" id="bypassEnglishStep">
+                        <span data-i18n="bypassEnglishStep">直接翻譯（繞過英語中間步驟，更快）</span>
+                    </label>
+                </div>
+                <div class="settings-section compact" id="extraTargetsSection">
+                    <label class="form-label" data-i18n="additionalTargets">額外目標語言</label>
+                    <p class="info-box-text" style="margin-bottom:8px;font-size:0.8rem" data-i18n="additionalTargetsHint">勾選後每次翻譯會同時輸出這些語言的結果</p>
+                    <div class="target-checkbox-group" id="extraTargetLanguages"></div>
+                </div>
+            </div>
+
+            <div id="userApiKeySection" class="hidden settings-section compact">
+                <label for="apiKey" class="form-label">
+                    <span data-i18n="apiKeyLabel">OpenRouter API 金鑰</span>
+                    <span class="tooltip" aria-label="說明">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                        <span class="tooltiptext" data-i18n="apiKeyTooltip">請在 OpenRouter.ai 註冊帳號並獲取 API 金鑰</span>
+                    </span>
+                </label>
+                <input type="password" id="apiKey" class="form-input" data-i18n-placeholder="apiKeyPlaceholder" placeholder="請輸入您的 OpenRouter API 金鑰" autocomplete="off">
+            </div>
+
+            <div id="serverApiKeySection" class="settings-section compact">
+                <p class="info-box-text" data-i18n="serverSideProcessingDesc">API 金鑰已安全存儲在伺服器端，提供最佳的安全性和便利性。</p>
+            </div>
+
+            <div id="bigmodelApiKeySection" class="hidden settings-section compact">
+                <label for="bigmodelApiKey" class="form-label" data-i18n="bigmodelApiKeyLabel">BigModel API 金鑰</label>
+                <input type="password" id="bigmodelApiKey" class="form-input" data-i18n-placeholder="bigmodelApiKeyPlaceholder" placeholder="請輸入您的 BigModel API 金鑰" autocomplete="off">
+            </div>
+
+            <div class="settings-section compact">
+                <label class="form-label" data-i18n="translationStyle">翻譯風格</label>
+                <div class="style-selector">
+                    <label class="style-chip" id="styleNormalLabel">
+                        <input type="radio" name="translationStyle" value="normal" checked id="styleNormal">
+                        <span data-i18n="translationStyleNormal">正常</span>
+                    </label>
+                    <label class="style-chip" id="styleNaturalLabel">
+                        <input type="radio" name="translationStyle" value="natural" id="styleNatural">
+                        <span data-i18n="translationStyleNatural">自然</span>
+                    </label>
+                    <label class="style-chip" id="styleFormalLabel">
+                        <input type="radio" name="translationStyle" value="formal" id="styleFormal">
+                        <span data-i18n="translationStyleFormal">商務</span>
+                    </label>
+                    <label class="style-chip" id="styleSimpleLabel">
+                        <input type="radio" name="translationStyle" value="simple" id="styleSimple">
+                        <span data-i18n="translationStyleSimple">淺白</span>
+                    </label>
+                    <label class="style-chip" id="styleAcademicLabel">
+                        <input type="radio" name="translationStyle" value="academic" id="styleAcademic">
+                        <span data-i18n="translationStyleAcademic">學術</span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <section class="translation-mode-type-section">
+            <label class="form-label" data-i18n="translationModeType">翻譯模式</label>
+            <div class="radio-group">
+                <label class="form-label-inline">
+                    <input type="radio" name="translationModeType" value="single" checked id="singleModeType">
+                    <span data-i18n="singleModeType">單人翻譯模式</span>
+                </label>
+                <label class="form-label-inline">
+                    <input type="radio" name="translationModeType" value="dual" id="dualModeType">
+                    <span data-i18n="dualModeType">雙人交流模式</span>
+                </label>
+            </div>
+        </section>
+
+        <section class="language-section">
+            <div class="language-selector">
+                <label for="sourceLanguage" data-i18n="sourceLanguage">來源語言</label>
+                <select id="sourceLanguage">
+                    <option value="zh-TW">中文 (繁體)</option>
+                    <option value="en-US">English</option>
+                    <option value="ja-JP">日本語</option>
+                    <option value="ko-KR">한국어</option>
+                    <option value="fr-FR">Français</option>
+                    <option value="es-ES">Español</option>
+                </select>
+            </div>
+
+            <button type="button" class="swap-button" id="swapLanguages" data-i18n-title="swapLanguages" title="交換語言" aria-label="交換語言">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10h14l-4-4"/><path d="M17 14H3l4 4"/></svg>
+            </button>
+
+            <div class="language-selector">
+                <label for="targetLanguage" data-i18n="targetLanguage">目標語言</label>
+                <select id="targetLanguage">
+                    <option value="en-US">English</option>
+                    <option value="zh-TW">中文 (繁體)</option>
+                    <option value="ja-JP">日本語</option>
+                    <option value="ko-KR">한국어</option>
+                    <option value="fr-FR">Français</option>
+                    <option value="es-ES">Español</option>
+                </select>
+            </div>
+        </section>
+
+        <div class="status-indicator" aria-live="polite">
+            <div class="status-dot" id="statusDot" aria-hidden="true"></div>
+            <span id="statusText" data-i18n="statusReady">準備就緒</span>
+        </div>
+
+        <div class="volume-indicator" id="volumeIndicator" aria-hidden="true"></div>
+
+        <section class="main-controls">
+            <button type="button" class="record-button" id="recordButton" aria-label="開始錄音">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            </button>
+            <p class="record-status"><span data-i18n="press">按</span> <kbd data-i18n="spaceKey">空格</kbd> <span data-i18n="toToggleRecording">開始 / 停止錄音</span></p>
+        </section>
+
+        <section class="toolbar">
+            <button type="button" class="btn btn-success" id="playTranslation" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                <span data-i18n="playTranslation">朗讀翻譯</span>
+            </button>
+            <button type="button" class="btn" id="clearHistory">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                <span data-i18n="clearHistory">清除歷史</span>
+            </button>
+            <button type="button" class="btn btn-primary hidden" id="swapUsers">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10h14l-4-4"/><path d="M17 14H3l4 4"/></svg>
+                <span data-i18n="swapUsers">交換使用者</span>
+            </button>
+        </section>
+
+        <section class="transcript-section-single" id="singleTranscriptSection">
+            <div class="transcript-box">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    <span data-i18n="originalVoice">原始語音</span>
+                </h3>
+                <div class="input-mode-selector">
+                    <label>
+                        <input type="radio" name="inputMode" value="voice" checked id="voiceInputMode">
+                        <span data-i18n="voiceInput">語音輸入</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="inputMode" value="voice-chat" id="voiceChatInputMode">
+                        <span data-i18n="voiceChatInput">語音對話</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="inputMode" value="text" id="textInputMode">
+                        <span data-i18n="textInput">文字輸入</span>
+                    </label>
+                </div>
+                <div class="transcript-content" id="sourceText" data-i18n="waitingVoiceInput">等待語音輸入...</div>
+                <div class="text-input-container" id="textInputContainer">
+                    <textarea id="sourceTextInput" class="source-text-input" data-i18n-placeholder="waitingTextInput" placeholder="請輸入要翻譯的文字..." rows="4"></textarea>
+                    <div class="flex gap-3">
+                        <button type="button" class="btn btn-primary" id="translateTextBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                            <span data-i18n="translateText">翻譯文字</span>
+                        </button>
+                        <button type="button" class="btn" id="clearTextBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            <span data-i18n="clearText">清除文字</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="transcript-box english-reference">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+                    <span id="englishReferenceLabelSingle" data-i18n="englishReference">英語參考</span>
+                </h3>
+                <div class="transcript-content" id="englishTextSingle" data-i18n="waitingTranslation">等待翻譯...</div>
+            </div>
+
+            <div class="transcript-box">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span data-i18n="translationResult">翻譯結果</span>
+                </h3>
+                <div class="transcript-content" id="targetText" data-i18n="waitingTranslation">等待翻譯...</div>
+            </div>
+            <div id="additionalTranslations" class="additional-translations hidden" aria-live="polite"></div>
+        </section>
+
+        <section class="transcript-section-dual hidden" id="dualTranscriptSection">
+            <div class="transcript-box">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span id="userALabel" data-i18n="userA">使用者 A</span>
+                </h3>
+                <div class="input-mode-selector">
+                    <label>
+                        <input type="radio" name="dualInputMode" value="voice" checked id="dualVoiceInputMode">
+                        <span data-i18n="voiceInput">語音輸入</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="dualInputMode" value="voice-chat" id="dualVoiceChatInputMode">
+                        <span data-i18n="voiceChatInput">語音對話</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="dualInputMode" value="text" id="dualTextInputMode">
+                        <span data-i18n="textInput">文字輸入</span>
+                    </label>
+                </div>
+                <div class="transcript-content" id="dualSourceText" data-i18n="waitingInput">等待輸入...</div>
+                <div class="text-input-container" id="dualTextInputContainer">
+                    <textarea id="dualSourceTextInput" class="source-text-input" data-i18n-placeholder="waitingTextInput" placeholder="請輸入要翻譯的文字..." rows="4"></textarea>
+                    <div class="flex gap-3">
+                        <button type="button" class="btn btn-primary" id="dualTranslateTextBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                            <span data-i18n="translateText">翻譯文字</span>
+                        </button>
+                        <button type="button" class="btn" id="dualClearTextBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            <span data-i18n="clearText">清除文字</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="transcript-box english-reference">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+                    <span id="englishReferenceLabel" data-i18n="englishReference">英語參考</span>
+                </h3>
+                <div class="transcript-content" id="englishText" data-i18n="waitingTranslation">等待翻譯...</div>
+            </div>
+
+            <div class="transcript-box">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span id="userBLabel" data-i18n="userB">使用者 B</span>
+                </h3>
+                <div class="transcript-content" id="dualTargetText" data-i18n="waitingTranslation">等待翻譯...</div>
+            </div>
+        </section>
+
+        <section class="history-section">
+            <div class="history-header">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                    <span data-i18n="translationHistory">翻譯歷史</span>
+                    <span class="history-count">(<span id="historyCount">0</span> <span data-i18n="historyCount">筆記錄</span>)</span>
+                </h3>
+            </div>
+            <div class="history-list" id="historyList">
+                <p class="history-empty" data-i18n="noHistory">暫無翻譯歷史</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Keyboard shortcuts modal -->
+    <div class="modal-backdrop" id="shortcutsModal" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="shortcutsTitle" data-i18n="keyboardShortcuts">鍵盤快捷鍵</h2>
+                <button type="button" class="modal-close" id="closeShortcutsModal" aria-label="關閉">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-list">
+                    <div class="shortcut-row">
+                        <span data-i18n="shortcutToggleRecording">開始 / 停止錄音</span>
+                        <span class="shortcut-keys"><kbd data-i18n="spaceKey">空格</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span data-i18n="shortcutStop">停止錄音</span>
+                        <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span data-i18n="shortcutTranslate">翻譯文字</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>Enter</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span data-i18n="shortcutSwapLanguages">交換語言</span>
+                        <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>L</kbd></span>
+                    </div>
+                    <div class="shortcut-row">
+                        <span data-i18n="shortcutHelp">顯示快捷鍵說明</span>
+                        <span class="shortcut-keys"><kbd>?</kbd></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="shortcutsOkBtn" data-i18n="close">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm clear history modal -->
+    <div class="modal-backdrop" id="confirmClearModal" role="dialog" aria-modal="true" aria-labelledby="confirmClearTitle">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="confirmClearTitle" data-i18n="confirmClearHistoryTitle">確認清除歷史</h2>
+                <button type="button" class="modal-close" id="closeConfirmClearModal" aria-label="關閉">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p data-i18n="confirmClearHistory">確定要清除所有翻譯歷史記錄嗎？此操作無法復原。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" id="cancelClearBtn" data-i18n="cancel">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmClearBtn" data-i18n="clear">清除</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
