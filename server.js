@@ -63,7 +63,7 @@ app.post('/.netlify/functions/transcribe', upload.single('file'), handleTranscri
 
 const distDir = path.join(__dirname, 'dist');
 app.use(express.static(distDir, { maxAge: '1d', index: false }));
-app.get('*', (req, res, next) => {
+app.use((req, res, next) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/.netlify/')) return next();
   res.sendFile(path.join(distDir, 'index.html'), (err) => {
     if (err) res.status(404).send('Not found — run `npm run build` first.');
