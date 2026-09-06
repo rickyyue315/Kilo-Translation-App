@@ -9,6 +9,14 @@ import {
   transcribeAudio,
   transcribeAudioDirect,
 } from './asr.js';
+import {
+  startChatTimer,
+  stopChatTimer,
+  startVisualizer,
+  stopVisualizer,
+  setVoiceChatState,
+  setVoiceChatLive,
+} from './voicechat.js';
 
 // Module-level state
 let recognition = null;
@@ -284,6 +292,10 @@ export async function startVoiceConversation(elements, options = {}) {
   _callbacks.hideError();
   _callbacks.updateStatus('recording', t('statusRecording') || '正在聆聽...');
   if (sourceBox) sourceBox.textContent = t('listening') || '正在聆聽...';
+  startChatTimer();
+  startVisualizer(mediaStream);
+  setVoiceChatState('listening');
+  setVoiceChatLive(t('listening') || '正在聆聽...', false);
 
   mediaRecorder.ondataavailable = (event) => {
     if (event.data && event.data.size > 0) mediaChunks.push(event.data);
@@ -294,6 +306,8 @@ export async function startVoiceConversation(elements, options = {}) {
     tracks.forEach((track) => track.stop());
     mediaStream = null;
     voiceConversationActive = false;
+    stopChatTimer();
+    stopVisualizer();
 
     const blobType = mediaRecorder.mimeType || mimeType || 'audio/webm';
     const audioBlob = new Blob(mediaChunks, { type: blobType });
@@ -303,12 +317,15 @@ export async function startVoiceConversation(elements, options = {}) {
 
     if (audioBlob.size === 0) {
       _callbacks.updateStatus('ready', t('statusReady') || '準備就緒');
+      setVoiceChatState('idle');
       return;
     }
 
     try {
       _callbacks.updateStatus('translating', t('transcribing') || '正在辨識語音...');
+      setVoiceChatState('working');
       if (sourceBox) sourceBox.textContent = `${t('transcribing') || '正在辨識語音...'}`;
+      setVoiceChatLive(t('transcribing') || '正在辨識語音...', false);
 
       const useServerKey = elements.serverApiKey ? elements.serverApiKey.checked : true;
       const userKey = elements.apiKey ? elements.apiKey.value.trim() : '';
@@ -320,15 +337,18 @@ export async function startVoiceConversation(elements, options = {}) {
       if (!text) {
         _callbacks.showError(t('noSpeechDetected') || '未檢測到語音輸入');
         _callbacks.updateStatus('ready', t('statusReady') || '準備就緒');
+        setVoiceChatState('idle');
         return;
       }
       if (sourceBox) sourceBox.textContent = text;
+      setVoiceChatLive(text, false);
       _callbacks.updateStatus('ready', t('statusReady') || '準備就緒');
       _callbacks.onTranslate(text);
     } catch (error) {
       console.error('語音對話轉錄失敗:', error);
       _callbacks.showError(error.message);
       _callbacks.updateStatus('error', t('statusError') || '發生錯誤');
+      setVoiceChatState('idle');
     }
   };
 
@@ -343,6 +363,9 @@ export async function startVoiceConversation(elements, options = {}) {
 
 function stopVoiceConversation(elements) {
   voiceConversationActive = false;
+  stopChatTimer();
+  stopVisualizer();
+  setVoiceChatState('idle');
   try {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   } catch (error) {
@@ -362,6 +385,7 @@ function stopVoiceConversation(elements) {
 function _updateRecordButton(elements, recording) {
     if (!elements.recordButton) return;
     elements.recordButton.classList.toggle('recording', recording);
+    elements.recordButton.setAttribute('aria-pressed', String(recording));
     elements.recordButton.setAttribute('aria-label', recording
         ? (t('stopRecording') || '停止錄音')
         : (t('startRecording') || '開始錄音'));
@@ -374,17 +398,18 @@ function _updateRecordButton(elements, recording) {
  * Play the translated text using the SpeechSynthesis API.
  * @param {object} elements
  */
-export function playTranslation(elements) {
-    const text = elements.targetText.textContent;
-    if (!text || text === (t('waitingTranslation') || '等待翻譯...')) {
+export function playTranslation(elements, textOverride, langOverride) {
+    const readText = (textOverride ?? elements.targetText.textContent ?? '').trim();
+    const readLang = langOverride || elements.targetLanguage.value;
+    if (!readText || readText === (t('waitingTranslation') || '等待翻譯...')) {
         _callbacks.showError(t('noContentToRead') || '沒有可朗讀的翻譯內容');
         return;
     }
 
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = elements.targetLanguage.value;
+    const utterance = new SpeechSynthesisUtterance(readText);
+    utterance.lang = readLang;
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
@@ -392,10 +417,10 @@ export function playTranslation(elements) {
     const isIOS = isIOSDevice();
     if (isIOS) {
         utterance.rate = 0.8;
-        if (text.length > 200) {
-            const sentences = text.split(/[.!?。！？]/);
+        if (readText.length > 200) {
+            const sentences = readText.split(/[.!?。！？]/);
             if (sentences.length > 1) {
-                speakSentences(sentences, elements.targetLanguage.value, elements);
+                speakSentences(sentences, readLang, elements);
                 return;
             }
         }
@@ -404,7 +429,7 @@ export function playTranslation(elements) {
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
         const targetVoice = voices.find(voice =>
-            voice.lang.startsWith(elements.targetLanguage.value.split('-')[0])
+            voice.lang.startsWith(readLang.split('-')[0])
         );
         if (targetVoice) {
             utterance.voice = targetVoice;

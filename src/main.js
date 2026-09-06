@@ -7,7 +7,8 @@ import { initializeSpeechRecognition, startRecording, stopRecording, playTransla
 import { OPENROUTER_ASR_MODELS, getSavedAsrModel, setSavedAsrModel } from './js/asr.js';
 import { translateText, translateTextInDualMode, performTranslation, getCurrentTranslation } from './js/translation.js';
 import { addToHistory, addToHistoryInDualMode, updateHistoryDisplay, clearHistory, setTranslationHistory, attachHistoryListeners } from './js/history.js';
-import { setupEventListeners, handleModeChange, swapUsers, updateUserLabels, updateStatus, showError, hideError, showSuccess, animateVolumeIndicator, initTooltipPositioning, getIsDualMode, getCurrentUser, switchToTextMode, switchToVoiceMode, switchToVoiceChatMode, switchToDualVoiceMode, switchToDualVoiceChatMode, switchToDualTextMode, populateExtraTargetCheckboxes } from './js/ui.js';
+import { setupEventListeners, handleModeChange, swapUsers, updateUserLabels, updateStatus, showError, hideError, showSuccess, animateVolumeIndicator, initTooltipPositioning, initTheme, getIsDualMode, getCurrentUser, switchToTextMode, switchToVoiceMode, switchToVoiceChatMode, switchToDualVoiceMode, switchToDualVoiceChatMode, switchToDualTextMode, populateExtraTargetCheckboxes } from './js/ui.js';
+import { ensureVisualizerBars, setVoiceChatLive, AUTOPLAY_STORAGE_KEY, updateVoiceChatVisibility } from './js/voicechat.js';
 
 // DOM Elements Registry
 const elements = {
@@ -91,6 +92,8 @@ const elements = {
   sourceTextInput: document.getElementById('sourceTextInput'),
   translateTextBtn: document.getElementById('translateTextBtn'),
   clearTextBtn: document.getElementById('clearTextBtn'),
+  copySourceBtn: document.getElementById('copySourceBtn'),
+  copyTargetBtn: document.getElementById('copyTargetBtn'),
   
   // Dual Mode Transcript
   dualTranscriptSection: document.getElementById('dualTranscriptSection'),
@@ -123,7 +126,10 @@ const elements = {
 // Application Initialization
 function initializeApp() {
   console.log('Kilo Translation App v3.0.0 initializing...');
-  
+
+  // Theme must load before language switch repaints text
+  initTheme();
+
   // Mobile device detection
   if (isMobileDevice()) {
     document.body.classList.add('mobile-device');
@@ -220,6 +226,59 @@ function initializeApp() {
     elements.interfaceLanguage.value = savedLang;
   }
   updateInterfaceLanguage(savedLang, elements);
+
+  // Restore persisted source/target languages
+  try {
+    const savedSource = localStorage.getItem('source_language');
+    const savedTarget = localStorage.getItem('target_language');
+    if (savedSource && elements.sourceLanguage.querySelector(`option[value="${savedSource}"]`)) {
+      elements.sourceLanguage.value = savedSource;
+    }
+    if (savedTarget && elements.targetLanguage.querySelector(`option[value="${savedTarget}"]`)) {
+      elements.targetLanguage.value = savedTarget;
+    }
+    if (getIsDualMode()) updateUserLabels(elements);
+  } catch {
+    // ignore language restore failures
+  }
+
+  // Persist language choices
+  if (elements.sourceLanguage) {
+    elements.sourceLanguage.addEventListener('change', function () {
+      try {
+        localStorage.setItem('source_language', this.value);
+      } catch {
+        // ignore
+      }
+      if (getIsDualMode()) updateUserLabels(elements);
+    });
+  }
+  if (elements.targetLanguage) {
+    elements.targetLanguage.addEventListener('change', function () {
+      try {
+        localStorage.setItem('target_language', this.value);
+      } catch {
+        // ignore
+      }
+      if (getIsDualMode()) updateUserLabels(elements);
+    });
+  }
+
+  // Restore voice-chat auto-play preference
+  const autoPlayBox = document.getElementById('voiceChatAutoPlay');
+  if (autoPlayBox) {
+    try {
+      const saved = localStorage.getItem(AUTOPLAY_STORAGE_KEY);
+      autoPlayBox.checked = saved === null ? true : saved !== 'false';
+    } catch {
+      autoPlayBox.checked = true;
+    }
+  }
+
+  // Voice-chat panel: visualizer skeleton + correct initial visibility
+  ensureVisualizerBars();
+  setVoiceChatLive(t('voiceChatLivePlaceholder') || '', true);
+  updateVoiceChatVisibility();
   
   // Initialize tooltip positioning
   initTooltipPositioning();

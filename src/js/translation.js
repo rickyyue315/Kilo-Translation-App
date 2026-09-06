@@ -3,6 +3,14 @@
 import { i18n } from './i18n.js';
 import { languageMap } from './models.js';
 import { needsEnglishTranslation } from './utils.js';
+import { playTranslation } from './speech.js';
+import {
+    addVoiceChatTurn,
+    getVoiceChatAutoPlay,
+    isVoiceChatMode,
+    setVoiceChatLive,
+    setVoiceChatState,
+} from './voicechat.js';
 
 // ========== Module State ==========
 
@@ -819,6 +827,7 @@ export async function translateTextInDualMode(text, elements, state = {}) {
 
     let sourceLang, targetLang;
     const translations = i18n[interfaceLanguage];
+    const voiceChat = isVoiceChatMode();
 
     if (currentUser === 'A') {
         sourceLang = elements.sourceLanguage.value;
@@ -840,6 +849,10 @@ export async function translateTextInDualMode(text, elements, state = {}) {
     }
 
     if (updateStatus) updateStatus('translating', translations.translating || '正在翻譯...');
+    if (voiceChat) {
+        setVoiceChatState('working');
+        setVoiceChatLive(translations.translating || '翻譯中...', false);
+    }
     elements.dualTargetText.textContent = '';
     elements.englishText.textContent = '';
 
@@ -889,9 +902,39 @@ export async function translateTextInDualMode(text, elements, state = {}) {
             addToHistoryInDualMode(text, finalTranslation, sourceLang, targetLang, englishTranslation);
         }
 
+        if (voiceChat) {
+            setVoiceChatState('idle');
+            setVoiceChatLive(finalTranslation, false);
+            addVoiceChatTurn({
+                speaker: currentUser === 'A'
+                    ? (translations.userA || '使用者 A')
+                    : (translations.userB || '使用者 B'),
+                speakerClass: currentUser === 'A' ? 'speaker-a' : 'speaker-b',
+                sourceText: text,
+                targetText: finalTranslation,
+                englishText: englishTranslation,
+                sourceLang: languageMap[sourceLang] || sourceLang,
+                targetLang: languageMap[targetLang] || targetLang,
+            });
+            if (getVoiceChatAutoPlay()) {
+                playTranslation(elements, finalTranslation, targetLang);
+            }
+        }
+
     } catch (error) {
         console.error('翻譯錯誤:', error);
         if (showError) showError(`${translations.translationFailed || '翻譯失敗'}: ${error.message}`);
+        if (voiceChat) {
+            setVoiceChatState('idle');
+            addVoiceChatTurn({
+                speaker: currentUser === 'A'
+                    ? (translations.userA || '使用者 A')
+                    : (translations.userB || '使用者 B'),
+                speakerClass: currentUser === 'A' ? 'speaker-a' : 'speaker-b',
+                sourceText: text,
+                error: `${translations.translationFailed || '翻譯失敗'}: ${error.message}`,
+            });
+        }
         if (updateStatus) updateStatus('error', translations.translationFailed || '翻譯失敗');
     }
 }
@@ -914,6 +957,7 @@ export async function translateText(text, elements, state = {}) {
     const sourceLang = elements.sourceLanguage.value;
     const targetLang = elements.targetLanguage.value;
     const translations = i18n[interfaceLanguage];
+    const voiceChat = isVoiceChatMode();
 
     // 檢查文字長度
     if (text.trim().length === 0) {
@@ -927,6 +971,10 @@ export async function translateText(text, elements, state = {}) {
     }
 
     if (updateStatus) updateStatus('translating', translations.translating || '正在翻譯...');
+    if (voiceChat) {
+        setVoiceChatState('working');
+        setVoiceChatLive(translations.translating || '翻譯中...', false);
+    }
     elements.targetText.textContent = '';
     elements.englishTextSingle.textContent = '';
 
@@ -973,6 +1021,23 @@ export async function translateText(text, elements, state = {}) {
         // 添加到歷史記錄
         if (addToHistory) {
             addToHistory(text, finalTranslation, sourceLang, targetLang, englishRef);
+        }
+
+        if (voiceChat) {
+            setVoiceChatState('idle');
+            setVoiceChatLive(finalTranslation, false);
+            addVoiceChatTurn({
+                speaker: languageMap[sourceLang] || sourceLang,
+                speakerClass: 'speaker-a',
+                sourceText: text,
+                targetText: finalTranslation,
+                englishText: englishRef,
+                sourceLang: languageMap[sourceLang] || sourceLang,
+                targetLang: languageMap[targetLang] || targetLang,
+            });
+            if (getVoiceChatAutoPlay()) {
+                playTranslation(elements, finalTranslation, targetLang);
+            }
         }
 
         // ========== 額外目標語言的平行翻譯 ==========
@@ -1024,6 +1089,15 @@ export async function translateText(text, elements, state = {}) {
         console.error('翻譯錯誤:', error);
         if (showError) showError(`${translations.translationFailed || '翻譯失敗'}: ${error.message}`);
         elements.targetText.classList.remove('streaming');
+        if (voiceChat) {
+            setVoiceChatState('idle');
+            addVoiceChatTurn({
+                speaker: languageMap[sourceLang] || sourceLang,
+                speakerClass: 'speaker-a',
+                sourceText: text,
+                error: `${translations.translationFailed || '翻譯失敗'}: ${error.message}`,
+            });
+        }
         if (updateStatus) updateStatus('error', translations.translationFailed || '翻譯失敗');
     }
 }

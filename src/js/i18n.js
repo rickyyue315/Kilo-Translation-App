@@ -127,7 +127,19 @@ export const i18n = {
         delete: '刪除',
         bypassEnglishStep: '直接翻譯（繞過英語中間步驟，更快）',
         additionalTargets: '額外目標語言',
-        additionalTargetsHint: '勾選後每次翻譯會同時輸出這些語言的結果'
+        additionalTargetsHint: '勾選後每次翻譯會同時輸出這些語言的結果',
+        skipToContent: '跳到主要內容',
+        themeToggleTitle: '切換深色 / 淺色模式',
+        autoPlayTranslation: '語音對話自動朗讀翻譯',
+        voiceChatTitle: '語音對話',
+        voiceChatSubtitle: '按下麥克風說話，再按一次即翻譯並朗讀',
+        voiceChatLive: '即時內容',
+        voiceChatLivePlaceholder: '開始說話後，這裡會顯示辨識與翻譯進度…',
+        voiceChatTurnsLabel: '對話記錄',
+        voiceChatEmpty: '還沒有對話，按下下方麥克風開始第一句',
+        clearConversation: '清除對話',
+        tapOrbHint: '語音對話模式會自動辨識、翻譯並朗讀',
+        copyFailed: '複製失敗'
     },
     'zh-CN': {
         asrModelLabel: '语音识别模型',
@@ -255,7 +267,19 @@ export const i18n = {
         delete: '删除',
         bypassEnglishStep: '直接翻译（绕过英语中间步骤，更快）',
         additionalTargets: '额外目标语言',
-        additionalTargetsHint: '勾选后每次翻译会同时输出这些语言的结果'
+        additionalTargetsHint: '勾选后每次翻译会同时输出这些语言的结果',
+        skipToContent: '跳到主要内容',
+        themeToggleTitle: '切换深色 / 浅色模式',
+        autoPlayTranslation: '语音对话自动朗读翻译',
+        voiceChatTitle: '语音对话',
+        voiceChatSubtitle: '按下麦克风说话，再按一次即翻译并朗读',
+        voiceChatLive: '实时内容',
+        voiceChatLivePlaceholder: '开始说话后，这里会显示识别与翻译进度…',
+        voiceChatTurnsLabel: '对话记录',
+        voiceChatEmpty: '还没有对话，按下下方麦克风开始第一句',
+        clearConversation: '清除对话',
+        tapOrbHint: '语音对话模式会自动识别、翻译并朗读',
+        copyFailed: '复制失败'
     },
     'en-US': {
         asrModelLabel: 'Speech Recognition Model',
@@ -383,7 +407,19 @@ export const i18n = {
         delete: 'Delete',
         bypassEnglishStep: 'Direct translation (skip English intermediate step, faster)',
         additionalTargets: 'Extra target languages',
-        additionalTargetsHint: 'Check to output translations in these languages simultaneously'
+        additionalTargetsHint: 'Check to output translations in these languages simultaneously',
+        skipToContent: 'Skip to main content',
+        themeToggleTitle: 'Toggle dark / light mode',
+        autoPlayTranslation: 'Auto-play translation in voice chat',
+        voiceChatTitle: 'Voice Chat',
+        voiceChatSubtitle: 'Tap the mic, speak, tap again to translate and play aloud',
+        voiceChatLive: 'Live',
+        voiceChatLivePlaceholder: 'Speak to see transcription and translation progress here…',
+        voiceChatTurnsLabel: 'Conversation',
+        voiceChatEmpty: 'No conversation yet — tap the mic below to start',
+        clearConversation: 'Clear chat',
+        tapOrbHint: 'Voice chat auto-transcribes, translates and reads aloud',
+        copyFailed: 'Copy failed'
     },
     'ja-JP': {
         asrModelLabel: '音声認識モデル',
@@ -511,7 +547,19 @@ export const i18n = {
         delete: '削除',
         bypassEnglishStep: '直接翻訳（英語の中間ステップをスキップ、高速）',
         additionalTargets: '追加のターゲット言語',
-        additionalTargetsHint: 'チェックすると、毎回の翻訳でこれらの言語も同時に出力します'
+        additionalTargetsHint: 'チェックすると、毎回の翻訳でこれらの言語も同時に出力します',
+        skipToContent: 'メインコンテンツへ移動',
+        themeToggleTitle: 'ダーク / ライトモード切替',
+        autoPlayTranslation: 'ボイスチャットの翻訳を自動読み上げ',
+        voiceChatTitle: 'ボイスチャット',
+        voiceChatSubtitle: 'マイクを押して話し、もう一度押すと翻訳して読み上げます',
+        voiceChatLive: 'ライブ',
+        voiceChatLivePlaceholder: '話すと、ここに認識と翻訳の進捗が表示されます…',
+        voiceChatTurnsLabel: '会話履歴',
+        voiceChatEmpty: 'まだ会話がありません。下のマイクを押して開始しましょう',
+        clearConversation: '会話をクリア',
+        tapOrbHint: 'ボイスチャットは自動で認識・翻訳・読み上げします',
+        copyFailed: 'コピーに失敗しました'
     },
     'ko-KR': {
         asrModelLabel: '음성 인식 모델',
@@ -639,7 +687,19 @@ export const i18n = {
         delete: '삭제',
         bypassEnglishStep: '직접 번역 (영어 중간 단계 건너뛰기, 더 빠름)',
         additionalTargets: '추가 대상 언어',
-        additionalTargetsHint: '선택하면 매번 번역 시 이러한 언어도 동시에 출력합니다'
+        additionalTargetsHint: '선택하면 매번 번역 시 이러한 언어도 동시에 출력합니다',
+        skipToContent: '본문으로 이동',
+        themeToggleTitle: '다크 / 라이트 모드 전환',
+        autoPlayTranslation: '음성 대화 번역 자동 읽기',
+        voiceChatTitle: '음성 대화',
+        voiceChatSubtitle: '마이크를 누르고 말한 뒤 다시 누르면 번역 후 읽어줍니다',
+        voiceChatLive: '실시간',
+        voiceChatLivePlaceholder: '말하면 여기에 인식 및 번역 진행 상황이 표시됩니다…',
+        voiceChatTurnsLabel: '대화 기록',
+        voiceChatEmpty: '아직 대화가 없습니다. 아래 마이크를 눌러 시작하세요',
+        clearConversation: '대화 지우기',
+        tapOrbHint: '음성 대화는 자동으로 인식·번역·읽어줍니다',
+        copyFailed: '복사 실패'
     }
 };
 
@@ -657,8 +717,30 @@ export function updateInterfaceLanguage(lang, elements) {
         if (dict[key]) {
             if (el.tagName === 'OPTION') {
                 el.textContent = dict[key];
-            } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            } else if (el.tagName === 'INPUT' && el.type !== 'radio' && el.type !== 'checkbox') {
                 el.placeholder = dict[key];
+            } else if (el.tagName === 'TEXTAREA') {
+                el.placeholder = dict[key];
+            } else if (
+                el.id === 'voiceChatLiveText' &&
+                el.classList.contains('is-placeholder')
+            ) {
+                el.textContent = dict[key];
+            } else if (
+                el.id === 'sourceText' ||
+                el.id === 'dualSourceText' ||
+                el.id === 'targetText' ||
+                el.id === 'dualTargetText' ||
+                el.id === 'englishText' ||
+                el.id === 'englishTextSingle'
+            ) {
+                // Live content boxes: only repaint when they still show a
+                // placeholder string from ANY locale (never clobber results).
+                const current = el.textContent;
+                const isPlaceholder = Object.values(i18n).some(
+                    (locale) => current === '' || Object.values(locale).includes(current)
+                );
+                if (isPlaceholder) el.textContent = dict[key];
             } else {
                 el.textContent = dict[key];
             }
@@ -671,6 +753,22 @@ export function updateInterfaceLanguage(lang, elements) {
             el.title = dict[key];
         }
     });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (dict[key]) {
+            el.placeholder = dict[key];
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+        const key = el.getAttribute('data-i18n-aria-label');
+        if (dict[key]) {
+            el.setAttribute('aria-label', dict[key]);
+        }
+    });
+
+    document.documentElement.lang = lang;
 
     localStorage.setItem('interface_language', lang);
 }

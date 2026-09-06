@@ -9,6 +9,12 @@ import {
 } from './models.js';
 import { getExtraTargetLanguages, setExtraTargetLanguages } from './translation.js';
 import { toggleRecording, startRecording, stopRecording, playTranslation, getIsRecording } from './speech.js';
+import {
+    AUTOPLAY_STORAGE_KEY,
+    THEME_STORAGE_KEY,
+    clearVoiceChatTurns,
+    updateVoiceChatVisibility,
+} from './voicechat.js';
 import { loadSavedData, isMobileDevice } from './utils.js';
 
 // ========== Module-level State ==========
@@ -70,8 +76,58 @@ export function setupEventListeners(elements, callbacks = {}) {
     }
 
     elements.playTranslation.addEventListener('click', function () {
+        if (getIsDualMode()) {
+            const text = elements.dualTargetText.textContent;
+            const waiter = _getTranslations().waitingTranslation;
+            if (text && text !== waiter) {
+                playTranslation(elements, text, elements.targetLanguage.value);
+                return;
+            }
+        }
         playTranslation(elements);
     });
+
+    const copyText = async (value) => {
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(value);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = value;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            if (_callbacks?.showSuccess) _callbacks.showSuccess(_getTranslations().copied || '已複製到剪貼簿');
+        } catch {
+            if (_callbacks?.showError) _callbacks.showError(_getTranslations().copyFailed || '複製失敗');
+        }
+    };
+
+    if (elements.copySourceBtn) {
+        elements.copySourceBtn.addEventListener('click', function () {
+            const value = getIsDualMode()
+                ? elements.dualSourceText.textContent
+                : elements.sourceText.textContent;
+            if (value) copyText(value);
+        });
+    }
+    if (elements.copyTargetBtn) {
+        elements.copyTargetBtn.addEventListener('click', function () {
+            const value = elements.targetText.textContent;
+            if (value) copyText(value);
+        });
+    }
+
+    const voiceChatClear = document.getElementById('voiceChatClearBtn');
+    if (voiceChatClear) {
+        voiceChatClear.addEventListener('click', function () {
+            clearVoiceChatTurns();
+        });
+    }
 
     elements.clearHistory.addEventListener('click', function () {
         openConfirmClearModal(_clearHistory);
@@ -271,6 +327,26 @@ export function setupEventListeners(elements, callbacks = {}) {
         });
     }
 
+    // Voice-chat auto-play toggle
+    const autoPlayBox = document.getElementById('voiceChatAutoPlay');
+    if (autoPlayBox) {
+        autoPlayBox.addEventListener('change', function () {
+            try {
+                localStorage.setItem(AUTOPLAY_STORAGE_KEY, this.checked ? 'true' : 'false');
+            } catch {
+                // ignore persistence failures
+            }
+        });
+    }
+
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function () {
+            toggleTheme();
+        });
+    }
+
     // Extra target language checkboxes (delegated)
     const extraTargetContainer = document.getElementById('extraTargetLanguages');
     if (extraTargetContainer) {
@@ -340,6 +416,8 @@ export function handleModeChange(mode, elements) {
     if (getIsRecording()) {
         stopRecording(elements);
     }
+
+    updateVoiceChatVisibility();
 }
 
 export function swapUsers(elements) {
@@ -377,6 +455,7 @@ export function switchToDualVoiceMode(elements) {
     if (elements.recordButton) elements.recordButton.classList.remove('hidden');
     localStorage.setItem('dual_input_mode', 'voice');
     if (getIsRecording()) stopRecording(elements);
+    updateVoiceChatVisibility();
 }
 
 export function switchToDualVoiceChatMode(elements) {
@@ -385,6 +464,7 @@ export function switchToDualVoiceChatMode(elements) {
     if (elements.recordButton) elements.recordButton.classList.remove('hidden');
     localStorage.setItem('dual_input_mode', 'voice-chat');
     if (getIsRecording()) stopRecording(elements);
+    updateVoiceChatVisibility();
 }
 
 export function switchToDualTextMode(elements) {
@@ -393,6 +473,7 @@ export function switchToDualTextMode(elements) {
     if (elements.recordButton) elements.recordButton.classList.add('hidden');
     localStorage.setItem('dual_input_mode', 'text');
     if (getIsRecording()) stopRecording(elements);
+    updateVoiceChatVisibility();
     elements.dualSourceTextInput.focus();
 }
 
@@ -404,6 +485,7 @@ export function switchToVoiceChatMode(elements) {
     if (elements.recordButton) elements.recordButton.classList.remove('hidden');
     localStorage.setItem('input_mode', 'voice-chat');
     if (getIsRecording()) stopRecording(elements);
+    updateVoiceChatVisibility();
 }
 
 export function switchToVoiceMode(elements) {
@@ -412,6 +494,7 @@ export function switchToVoiceMode(elements) {
     if (elements.recordButton) elements.recordButton.classList.remove('hidden');
     localStorage.setItem('input_mode', 'voice');
     if (getIsRecording()) stopRecording(elements);
+    updateVoiceChatVisibility();
 }
 
 export function switchToTextMode(elements) {
@@ -420,6 +503,7 @@ export function switchToTextMode(elements) {
     if (elements.recordButton) elements.recordButton.classList.add('hidden');
     localStorage.setItem('input_mode', 'text');
     if (getIsRecording()) stopRecording(elements);
+    updateVoiceChatVisibility();
     elements.sourceTextInput.focus();
 }
 
@@ -427,6 +511,45 @@ export function swapLanguages(elements) {
     const temp = elements.sourceLanguage.value;
     elements.sourceLanguage.value = elements.targetLanguage.value;
     elements.targetLanguage.value = temp;
+    try {
+        localStorage.setItem('source_language', elements.sourceLanguage.value);
+        localStorage.setItem('target_language', elements.targetLanguage.value);
+    } catch {
+        // ignore persistence failures
+    }
+    if (getIsDualMode()) updateUserLabels(elements);
+}
+
+// ========== Theme ==========
+
+export function getSavedTheme() {
+    try {
+        return localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+    } catch {
+        return document.documentElement.getAttribute('data-theme') || 'light';
+    }
+}
+
+export function applyTheme(theme) {
+    const next = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+        // ignore persistence failures
+    }
+    const toggle = document.getElementById('themeToggle');
+    if (toggle) {
+        toggle.setAttribute('aria-label', next === 'dark' ? '切換為淺色模式' : '切換為深色模式');
+    }
+}
+
+export function toggleTheme() {
+    applyTheme(getSavedTheme() === 'dark' ? 'light' : 'dark');
+}
+
+export function initTheme() {
+    applyTheme(getSavedTheme());
 }
 
 // ========== Status & Notifications ==========
@@ -434,14 +557,20 @@ export function swapLanguages(elements) {
 export function updateStatus(status, message, elements) {
     elements.statusDot.className = 'status-dot';
 
+    const indicator = elements.statusText?.closest?.('.status-indicator');
+    if (indicator) indicator.classList.remove('is-recording', 'is-busy');
+
     switch (status) {
         case 'ready':
+            break;
         case 'translating':
         case 'speaking':
             elements.statusDot.classList.add('active');
+            if (indicator) indicator.classList.add('is-busy');
             break;
         case 'recording':
             elements.statusDot.classList.add('recording');
+            if (indicator) indicator.classList.add('is-recording');
             break;
         case 'error':
         default:
