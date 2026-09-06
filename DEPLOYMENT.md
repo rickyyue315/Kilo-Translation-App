@@ -289,7 +289,6 @@ Netlify 提供：
 - Google Gemma 3 27B
 - DeepSeek R1T2 Chimera
 - Qwen3 Coder
-- 智譜 GLM-4.5 Air
 - Meituan LongCat Flash
 - TNG R1T Chimera
 - Google Gemini 2.0 Flash Exp

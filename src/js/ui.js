@@ -5,9 +5,6 @@ import {
     languageMap,
     updateModelDescription,
     filterModelsForServerAPI,
-    switchTranslationService,
-    showBigModelModels,
-    showOpenRouterModels,
     showAllModels
 } from './models.js';
 import { getExtraTargetLanguages, setExtraTargetLanguages } from './translation.js';
@@ -96,37 +93,6 @@ export function setupEventListeners(elements, callbacks = {}) {
             populateExtraTargetCheckboxes(elements);
         });
     }
-
-    // Translation service
-    elements.openrouterService.addEventListener('change', function () {
-        if (this.checked) {
-            switchTranslationService('openrouter');
-            elements.bigmodelApiKeySection.classList.add('hidden');
-            showOpenRouterModels({
-                aiModel: elements.aiModel,
-                modelDescription: elements.modelDescription,
-                customModelContainer: elements.customModelContainer,
-                customModelInput: elements.customModelInput,
-                translations: _getTranslations()
-            });
-        }
-    });
-
-    elements.bigmodelService.addEventListener('change', function () {
-        if (this.checked) {
-            switchTranslationService('bigmodel');
-            elements.bigmodelApiKeySection.classList.remove('hidden');
-            showBigModelModels({
-                aiModel: elements.aiModel,
-                modelDescription: elements.modelDescription,
-                translations: _getTranslations()
-            });
-        }
-    });
-
-    elements.bigmodelApiKey.addEventListener('change', function () {
-        localStorage.setItem('bigmodel_api_key', this.value);
-    });
 
     // API key source
     elements.serverApiKey.addEventListener('change', function () {

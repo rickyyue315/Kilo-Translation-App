@@ -9,13 +9,11 @@
   "keywords": [
     "netlify",
     "functions",
-    "translation",
-    "bigmodel"
+    "translation"
   ],
   "author": "Kilo Code",
   "license": "MIT",
   "dependencies": {
-    "jsonwebtoken": "^9.0.2",
     "busboy": "^1.6.0"
   }
 }

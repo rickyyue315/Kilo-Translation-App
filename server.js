@@ -9,7 +9,6 @@
  *
  * Env vars:
  *   OPENROUTER_API_KEY - OpenRouter key (chat + ASR proxy)
- *   BIGMODEL_API_KEY   - BigModel key in "id.secret" form (optional)
  *   PORT               - listen port (Zeabur injects this automatically)
  *   CORS_ORIGIN        - allowed origin, default "*"
  */

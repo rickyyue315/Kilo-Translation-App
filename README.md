@@ -1,12 +1,6 @@
 # Kilo 即時語音翻譯器
 
-一個基於 Web Speech API 和多翻譯服務的即時語音翻譯網頁應用程式，支援多語言即時翻譯和語音合成。
-
-**🚀 新功能：BigModel API 實時翻譯支援**
-- 新增智譜 GLM 系列模型（GLM-4 Flash、GLM-4、GLM-3 Turbo）
-- 支援流式翻譯，即時顯示翻譯結果
-- 高品質、快速響應的中文 AI 翻譯
-- 使用 JWT 認證機制，確保 API 安全性
+一個基於 Web Speech API 和 OpenRouter 的即時語音翻譯網頁應用程式，支援多語言即時翻譯和語音合成。
 
 ## 功能特色
 
@@ -152,7 +146,6 @@
 - **Google Gemma 3 27B**：大型免費模型，強大的理解和生成能力
 - **DeepSeek R1T2 Chimera**：免費推理模型，邏輯思考能力強
 - **Qwen3 Coder**：免費編程專用模型，技術翻譯優勢
-- **智譜 GLM-4.5 Air**：免費中文AI模型，專注中文理解和生成
 - **Meituan LongCat Flash**：免費對話模型，自然流暢的交互
 - **TNG R1T Chimera**：免費推理模型，複雜邏輯處理
 - **Google Gemini 2.0 Flash Exp**：免費實驗版，體驗最新技術
@@ -265,29 +258,8 @@
            temperature: 0.3,
            max_tokens: 1000
        })
-   });
-   ```
-
-### BigModel API 設定
-
-1. **獲取 API 金鑰**
-   - 訪問 [智譜 AI 開放平台](https://open.bigmodel.cn/)
-   - 註冊帳號並登入
-   - 在控制台中獲取 API 金鑰
-   - API 金鑰格式：`{id}.{secret}`
-
-2. **JWT 認證機制**
-   - BigModel API 使用 JWT (JSON Web Token) 認證
-   - 系統會自動將 API Key 轉換為 JWT token
-   - JWT token 有效期為 1 小時，過期後會自動重新生成
-
-3. **設定環境變量（Netlify 部署）**
-   - 在 Netlify 控制台中添加環境變量：
-     - `BIGMODEL_API_KEY`：您的 BigModel API 金鑰
-
-4. **查看詳細文檔**
-   - 前往 [BigModel API 文檔](docs/BIGMODEL_API.md)
-   - 了解完整的模型列表和配置說明
+    });
+    ```
 
 ## 技術架構
 
@@ -308,12 +280,6 @@
     - 支援流式響應
     - 多模型選擇
     - 基於 2025 官方推薦清單
-
-3. **BigModel API**
-    - JWT 認證機制
-    - 支援流式響應
-    - 專注中文翻譯
-    - GLM 系列模型選擇
 
 ### 資料儲存
 

@@ -8,7 +8,6 @@
 // Import constants
 import {
     TRANSLATION_SERVICES,
-    BIGMODEL_CONFIG,
     OPENROUTER_CONFIG
 } from './constants.js';
 
@@ -25,54 +24,6 @@ export const TRANSLATION_SERVICE_CONFIG = {
         timeout: 35000,
         retryAttempts: 3,
         retryDelay: 1000
-    },
-    [TRANSLATION_SERVICES.BIGMODEL]: {
-        name: 'BigModel API',
-        description: 'Real-time translation service',
-        apiUrl: BIGMODEL_CONFIG.API_URL,
-        defaultModel: BIGMODEL_CONFIG.DEFAULT_MODEL,
-        timeout: 30000,
-        retryAttempts: 3,
-        retryDelay: 1000
-    }
-};
-
-/**
- * BigModel API Configuration
- * Extended configuration for BigModel service
- */
-export const BIGMODEL_EXTENDED_CONFIG = {
-    // API Configuration
-    api: {
-        url: BIGMODEL_CONFIG.API_URL,
-        timeout: 30000,
-        maxRetries: 3,
-        retryDelay: 1000
-    },
-    
-    // Model Configuration
-    models: {
-        default: BIGMODEL_CONFIG.DEFAULT_MODEL,
-        available: Object.keys(BIGMODEL_CONFIG.MODELS),
-        categories: {
-            recommended: ['glm-4.5-air'],
-            highQuality: ['glm-4.7'],
-            fast: ['glm-4.7-flash', 'glm-4.7-flashx']
-        }
-    },
-    
-    // Request Configuration
-    request: {
-        temperature: 0.3,
-        maxTokens: 2000,
-        stream: true
-    },
-    
-    // Feature Flags
-    features: {
-        streaming: true,
-        cache: true,
-        errorHandling: true
     }
 };
 
@@ -149,9 +100,7 @@ export const APP_CONFIG = {
     
     // Storage Keys
     storage: {
-        translationService: 'translation_service',
         apiKey: 'openrouter_api_key',
-        bigModelApiKey: 'bigmodel_api_key',
         apiKeySource: 'api_key_source',
         selectedModel: 'selected_ai_model',
         customModel: 'custom_ai_model',
@@ -190,14 +139,6 @@ export const APP_CONFIG = {
  */
 export function getServiceConfig(service) {
     return TRANSLATION_SERVICE_CONFIG[service] || TRANSLATION_SERVICE_CONFIG[TRANSLATION_SERVICES.OPENROUTER];
-}
-
-/**
- * Get BigModel configuration
- * @returns {Object} BigModel configuration object
- */
-export function getBigModelConfig() {
-    return BIGMODEL_EXTENDED_CONFIG;
 }
 
 /**
@@ -248,9 +189,6 @@ export function validateServiceConfig(service) {
  * @returns {Array} Array of available model IDs
  */
 export function getAvailableModels(service) {
-    if (service === TRANSLATION_SERVICES.BIGMODEL) {
-        return Object.keys(BIGMODEL_CONFIG.MODELS);
-    }
     // For OpenRouter, return empty array (models are dynamically loaded)
     return [];
 }
@@ -262,10 +200,6 @@ export function getAvailableModels(service) {
  * @returns {string|null} The category of the model
  */
 export function getModelCategory(service, modelId) {
-    if (service === TRANSLATION_SERVICES.BIGMODEL) {
-        const model = BIGMODEL_CONFIG.MODELS[modelId];
-        return model ? model.category : null;
-    }
     return null;
 }
 
@@ -276,10 +210,6 @@ export function getModelCategory(service, modelId) {
  * @returns {string} The model description
  */
 export function getModelDescription(service, modelId) {
-    if (service === TRANSLATION_SERVICES.BIGMODEL) {
-        const model = BIGMODEL_CONFIG.MODELS[modelId];
-        return model ? `${model.name}：${model.description}` : '選擇一個模型進行翻譯';
-    }
     return '選擇一個 AI 模型進行翻譯';
 }
 
@@ -353,13 +283,11 @@ export function mergeConfig(baseConfig, overrides) {
 
 export default {
     TRANSLATION_SERVICE_CONFIG,
-    BIGMODEL_EXTENDED_CONFIG,
     OPENROUTER_EXTENDED_CONFIG,
     SPEECH_CONFIG,
     SPEECH_SYNTHESIS_CONFIG,
     APP_CONFIG,
     getServiceConfig,
-    getBigModelConfig,
     getOpenRouterConfig,
     getSpeechConfig,
     getSpeechSynthesisConfig,

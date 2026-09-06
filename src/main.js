@@ -1,7 +1,7 @@
 // Kilo Translation App - Main Entry Point
 import './styles/main.css';
 import { i18n, t, updateInterfaceLanguage } from './js/i18n.js';
-import { languageMap, aiModels, bigModelModels, modelCategories, freeModelsOnly, updateModelDescription, filterModelsForServerAPI, switchTranslationService, showBigModelModels, showOpenRouterModels, showAllModels } from './js/models.js';
+import { languageMap, aiModels, modelCategories, freeModelsOnly, updateModelDescription, filterModelsForServerAPI, showOpenRouterModels, showAllModels } from './js/models.js';
 import { isMobileDevice, isIOSDevice, isSafariBrowser, checkBrowserSupport, createVolumeIndicator, loadSavedData } from './js/utils.js';
 import { initializeSpeechRecognition, startRecording, stopRecording, playTranslation, getIsRecording } from './js/speech.js';
 import { OPENROUTER_ASR_MODELS, getSavedAsrModel, setSavedAsrModel } from './js/asr.js';
@@ -29,13 +29,7 @@ const elements = {
   modelDescription: document.getElementById('modelDescription'),
   asrModel: document.getElementById('asrModel'),
   asrModelDescription: document.getElementById('asrModelDescription'),
-  
-  // Translation Service
-  openrouterService: document.getElementById('openrouterService'),
-  bigmodelService: document.getElementById('bigmodelService'),
-  bigmodelApiKeySection: document.getElementById('bigmodelApiKeySection'),
-  bigmodelApiKey: document.getElementById('bigmodelApiKey'),
-  
+
   // Translation Mode
   translationModeSection: document.getElementById('translationModeSection'),
   streamMode: document.getElementById('streamMode'),
@@ -193,11 +187,6 @@ function initializeApp() {
       modelDescription: elements.modelDescription,
       translations: loadTranslations()
     }),
-    showBigModelModels: () => showBigModelModels({
-      aiModel: elements.aiModel,
-      modelDescription: elements.modelDescription,
-      translations: loadTranslations()
-    }),
     showOpenRouterModels: () => showOpenRouterModels({
       aiModel: elements.aiModel,
       modelDescription: elements.modelDescription,
@@ -265,7 +254,6 @@ function getAppState() {
   return {
     isDualMode: getIsDualMode(),
     currentUser: getCurrentUser(),
-    translationService: document.querySelector('input[name="translationService"]:checked')?.value || 'openrouter',
     translationMode: document.querySelector('input[name="translationMode"]:checked')?.value || 'stream',
     translationStyle: document.querySelector('input[name="translationStyle"]:checked')?.value || 'normal',
     apiKeySource: document.querySelector('input[name="apiKeySource"]:checked')?.value || 'server',

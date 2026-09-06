@@ -3,9 +3,11 @@
  *
  * Single source of truth used by:
  *   - server.js (Express, for Zeabur / Docker / local)
- *   - netlify/functions/translate.js (Netlify Functions, legacy path)
- *   - netlify/functions/transcribe.js (Netlify Functions, new ASR path)
+ *   - netlify/functions/translate.mjs (Netlify Functions, translation path)
+ *   - netlify/functions/transcribe.mjs (Netlify Functions, ASR path)
  *
+ * Translation goes through OpenRouter:
+ *   POST https://openrouter.ai/api/v1/chat/completions
  * ASR goes through OpenRouter's unified transcription endpoint:
  *   POST https://openrouter.ai/api/v1/audio/transcriptions
  * with a JSON body { model, input_audio: { data, format }, language? }.
@@ -15,8 +17,6 @@
  *   qwen/qwen3-asr-1.7b
  *   nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b
  */
-
-import jwt from 'jsonwebtoken';
 
 export const ASR_MODELS = {
   'mistralai/voxtral-mini-transcribe': {
@@ -90,14 +90,6 @@ export const freeModels = [
   'qwen/qwen3-coder:free',
 ];
 
-export const bigModelModels = [
-  'glm-5.1',
-  'glm-4.7-flashx',
-  'glm-4.7',
-  'glm-4.5-air',
-  'glm-4.7-flash',
-];
-
 export const translationStylePrompts = {
   normal: '',
   natural: '翻譯風格要求：讓文句更自然流暢，使用地道的表達方式，避免生硬的直譯，讓讀者感覺像是母語人士的表達。',
@@ -105,39 +97,6 @@ export const translationStylePrompts = {
   simple: '翻譯風格要求：風格要淺白易懂，像在跟小朋友解釋一樣，使用簡單的詞彙和短句，避免複雜的語法結構，讓任何人都能輕鬆理解。',
   academic: '翻譯風格要求：風格要適合學術人士，使用專業術語和學術表達，保持客觀、嚴謹的語氣，適合學術或專業領域的交流。',
 };
-
-const targetLanguageChecks = {
-  'ja-JP': /[\u3040-\u30FF]/,
-  'ko-KR': /[\uAC00-\uD7AF]/,
-  'zh-TW': /[\u4E00-\u9FFF]/,
-  'zh-CN': /[\u4E00-\u9FFF]/,
-  'en-US': /[A-Za-z]/,
-  'fr-FR': /[A-Za-z]/,
-  'es-ES': /[A-Za-z]/,
-  'de-DE': /[A-Za-z]/,
-  'it-IT': /[A-Za-z]/,
-  'pt-BR': /[A-Za-z]/,
-  'ru-RU': /[\u0400-\u04FF]/,
-};
-
-let cachedJWT = null;
-let cachedJWTExpiry = 0;
-
-export function generateBigModelJWT(apiKey) {
-  const now = Date.now();
-  if (cachedJWT && cachedJWTExpiry > now + 300000) return cachedJWT;
-  const [id, secret] = String(apiKey || '').split('.');
-  if (!id || !secret) throw new Error('Invalid API Key format. Expected format: id.secret');
-  const expiry = now + 3600000;
-  cachedJWT = jwt.sign({ api_key: id, exp: expiry, timestamp: now }, secret, { algorithm: 'HS256' });
-  cachedJWTExpiry = expiry;
-  return cachedJWT;
-}
-
-export function resetBigModelJWTCache() {
-  cachedJWT = null;
-  cachedJWTExpiry = 0;
-}
 
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60000;
@@ -164,21 +123,8 @@ export const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-export function isLikelyTargetLanguage(text, targetLang) {
-  if (!text) return false;
-  const checker = targetLanguageChecks[targetLang];
-  if (!checker) return true;
-  return checker.test(text);
-}
-
-export function buildStrictLanguageRule(targetLang) {
-  const targetName = languageMap[targetLang] || targetLang;
-  return `嚴格規則：輸出必須為${targetName}，不得混入其他語言或說明。`;
-}
-
-export function generateSystemPrompt(sourceLang, targetLang, style = 'normal', strict = false) {
+export function generateSystemPrompt(sourceLang, targetLang, style = 'normal') {
   const stylePrompt = translationStylePrompts[style] || '';
-  const strictRule = strict ? `\n\n${buildStrictLanguageRule(targetLang)}` : '';
   return `你是一個專業的翻譯助手。請將${languageMap[sourceLang]}準確翻譯成${languageMap[targetLang]}。
 
 ${stylePrompt}
@@ -197,14 +143,14 @@ ${stylePrompt}
 - 翻譯成簡體中文時：請確保輸出的是簡體中文
 - 翻譯成法文時：請確保輸出的是正確的法文，包含正確的變音符號
 - 翻譯成西班牙文時：請確保輸出的是正確的西班牙文，包含正確的重音符號
-- 翻譯成英文時：請確保輸出的是正確的英文${strictRule}`;
+- 翻譯成英文時：請確保輸出的是正確的英文`;
 }
 
-export function buildRequestBody(text, sourceLang, targetLang, model, stream, style, strict) {
+export function buildRequestBody(text, sourceLang, targetLang, model, stream, style) {
   return {
     model,
     messages: [
-      { role: 'system', content: generateSystemPrompt(sourceLang, targetLang, style, strict) },
+      { role: 'system', content: generateSystemPrompt(sourceLang, targetLang, style) },
       { role: 'user', content: text },
     ],
     stream: stream || false,
@@ -246,49 +192,6 @@ export function appOrigin(referer) {
   return referer || process.env.APP_URL || 'https://kilo-translator.zeabur.app';
 }
 
-export async function translateWithBigModel(text, sourceLang, targetLang, model, stream, style = 'normal') {
-  const API_KEY = process.env.BIGMODEL_API_KEY;
-  if (!API_KEY) return { error: 'BigModel API key not configured on server', status: 500 };
-  const jwtToken = generateBigModelJWT(API_KEY);
-  const selectedModel = model || 'glm-4.5-air';
-  if (!bigModelModels.includes(selectedModel)) {
-    return { error: `不支持的 BigModel 模型: ${selectedModel}`, status: 400, allowedModels: bigModelModels };
-  }
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
-  try {
-    const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwtToken}` },
-      body: JSON.stringify(buildRequestBody(text, sourceLang, targetLang, selectedModel, stream, style, false)),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return { error: errorData.message || `BigModel API 錯誤: ${response.status}`, status: response.status };
-    }
-    if (stream) {
-      let content = await handleSSEStream(response);
-      if (!isLikelyTargetLanguage(content, targetLang)) {
-        const retried = await retryWithStrictPrompt(text, sourceLang, targetLang, selectedModel, style, jwtToken, 'bigmodel');
-        if (retried) content = retried;
-      }
-      return { stream: true, content };
-    }
-    const data = await response.json();
-    let content = data.choices?.[0]?.message?.content;
-    if (content && !isLikelyTargetLanguage(content, targetLang)) {
-      const retried = await retryWithStrictPrompt(text, sourceLang, targetLang, selectedModel, style, jwtToken, 'bigmodel');
-      if (retried) content = retried;
-    }
-    return { stream: false, data: { choices: [{ message: { content } }] } };
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
-}
-
 export async function translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style = 'normal') {
   const API_KEY = process.env.OPENROUTER_API_KEY;
   if (!API_KEY) return { error: 'OpenRouter API key not configured on server', status: 500 };
@@ -315,7 +218,7 @@ export async function translateWithOpenRouter(text, sourceLang, targetLang, mode
           'HTTP-Referer': appOrigin(referer),
           'X-Title': 'Kilo Voice Translator',
         },
-        body: JSON.stringify(buildRequestBody(text, sourceLang, targetLang, currentModel, stream, style, false)),
+        body: JSON.stringify(buildRequestBody(text, sourceLang, targetLang, currentModel, stream, style)),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -347,32 +250,6 @@ export async function translateWithOpenRouter(text, sourceLang, targetLang, mode
     clearTimeout(timeoutId);
     throw error;
   }
-}
-
-export async function retryWithStrictPrompt(text, sourceLang, targetLang, model, style, jwtToken, service) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
-  try {
-    const retryBody = buildRequestBody(text, sourceLang, targetLang, model, false, style, true);
-    const url =
-      service === 'bigmodel'
-        ? 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
-        : 'https://openrouter.ai/api/v1/chat/completions';
-    const headers =
-      service === 'bigmodel'
-        ? { 'Content-Type': 'application/json', Authorization: `Bearer ${jwtToken}` }
-        : { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` };
-    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(retryBody), signal: controller.signal });
-    if (response.ok) {
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || null;
-    }
-  } catch {
-    // retry failed silently — original content will be used
-  } finally {
-    clearTimeout(timeoutId);
-  }
-  return null;
 }
 
 /**
@@ -456,28 +333,20 @@ export function handleHealth(_req, res) {
     time: new Date().toISOString(),
     asrModels: Object.keys(ASR_MODELS),
     hasOpenRouterKey: Boolean(process.env.OPENROUTER_API_KEY),
-    hasBigModelKey: Boolean(process.env.BIGMODEL_API_KEY),
   });
 }
 
-async function runTranslate({ text, sourceLang, targetLang, model, stream, service, action, style, referer }) {
+async function runTranslate({ text, sourceLang, targetLang, model, stream, action, style, referer }) {
   if (action === 'getApiKey') {
     return {
       status: 200,
       payload: {
         openrouterApiKey: process.env.OPENROUTER_API_KEY || null,
-        bigmodelApiKey: process.env.BIGMODEL_API_KEY || null,
       },
     };
   }
   if (!text || !sourceLang || !targetLang) {
     return { status: 400, payload: { error: 'Missing required parameters: text, sourceLang, targetLang' } };
-  }
-  if ((service || 'openrouter') === 'bigmodel') {
-    const result = await translateWithBigModel(text, sourceLang, targetLang, model, stream, style);
-    if (result.error) return { status: result.status || 500, payload: { error: result.error } };
-    if (result.stream) return { status: 200, raw: result.content, contentType: 'text/plain; charset=utf-8' };
-    return { status: 200, payload: result.data };
   }
   const result = await translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style);
   if (result.error) return { status: result.status || 500, payload: { error: result.error } };

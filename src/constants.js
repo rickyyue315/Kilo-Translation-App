@@ -36,8 +36,7 @@ export const LANGUAGE_CODES = Object.keys(LANGUAGES);
  * 翻譯服務類型
  */
 export const TRANSLATION_SERVICES = {
-  OPENROUTER: 'openrouter',
-  BIGMODEL: 'bigmodel'
+  OPENROUTER: 'openrouter'
 };
 
 /**
@@ -46,151 +45,6 @@ export const TRANSLATION_SERVICES = {
 export const OPENROUTER_CONFIG = {
   API_URL: 'https://openrouter.ai/api/v1/chat/completions',
   DEFAULT_MODEL: 'google/gemini-3.1-flash-lite',
-};
-
-/**
- * BigModel API 配置
- */
-export const BIGMODEL_CONFIG = {
-  API_URL: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-  DEFAULT_MODEL: 'glm-4.5-air',
-  MODELS: {
-    'glm-5.1': {
-      name: 'GLM-5.1',
-      description: '新一代旗艦模型，適合高品質翻譯',
-      category: '旗艦',
-      maxTokens: 128000,
-      contextWindow: 128000,
-      inputPrice: 0.001,
-      outputPrice: 0.001,
-      features: ['streaming', 'function-calling']
-    },
-    'glm-4.7-flashx': {
-      name: 'GLM-4.7 FlashX',
-      description: '極速響應版本，適合高頻即時翻譯',
-      category: '極速',
-      maxTokens: 128000,
-      contextWindow: 128000,
-      inputPrice: 0.0002,
-      outputPrice: 0.0002,
-      features: ['streaming', 'function-calling']
-    },
-    'glm-4.7': {
-      name: 'GLM-4.7',
-      description: '高品質版本，翻譯準確度穩定',
-      category: '高品質',
-      maxTokens: 128000,
-      contextWindow: 128000,
-      inputPrice: 0.0005,
-      outputPrice: 0.0005,
-      features: ['streaming', 'function-calling', 'vision']
-    },
-    'glm-4.5-air': {
-      name: 'GLM-4.5 Air',
-      description: '輕量低成本版本，適合日常使用',
-      category: '輕量級',
-      maxTokens: 128000,
-      contextWindow: 128000,
-      inputPrice: 0.00015,
-      outputPrice: 0.00015,
-      features: ['streaming']
-    },
-    'glm-4.7-flash': {
-      name: 'GLM-4.7 Flash',
-      description: '速度與品質平衡，適合即時翻譯',
-      category: '推薦',
-      maxTokens: 128000,
-      contextWindow: 128000,
-      inputPrice: 0.00025,
-      outputPrice: 0.00025,
-      features: ['streaming', 'function-calling']
-    }
-  },
-  // ========== 語音識別（ASR）配置 ==========
-  ASR_API_URL: 'https://open.bigmodel.cn/api/paas/v4/audio/transcriptions',
-  ASR_MODEL: 'glm-asr-2512',
-  ASR_MODELS: {
-    'glm-asr-2512': {
-      name: 'GLM-ASR-2512',
-      description: '新一代語音識別模型，支持實時轉錄高質量文字',
-      category: '語音識別',
-      maxAudioDuration: 30, // 秒
-      maxFileSize: 25 * 1024 * 1024, // 25 MB
-      supportedFormats: ['audio/wav', 'audio/mpeg', 'audio/mp3'],
-      features: ['streaming', 'multilingual', 'hotwords', 'context'],
-      languages: [
-        'zh-CN', // 中文（普通話、方言）
-        'en-US', // 英文（多口音）
-        'ja-JP', // 日文
-        'ko-KR', // 韓文
-        'fr-FR', // 法文
-        'de-DE', // 德文
-        'es-ES', // 西班牙文
-        'ar-SA', // 阿拉伯文
-        'pt-BR', // 葡萄牙文
-        'ru-RU'  // 俄文
-      ],
-      characterErrorRate: '0.0717', // 字符錯誤率
-      supportedDialects: {
-        'zh-CN': ['普通話', '四川話', '粵語', '閩南語', '吳語']
-      },
-      recommendations: [
-        '實時會議紀要',
-        '客服質檢與工單處理',
-        '視頻直播字幕',
-        '辦公文檔輸入',
-        '多語言溝通與翻譯',
-        '醫療病歷錄入'
-      ]
-    }
-  }
-};
-
-/**
- * BigModel 錯誤代碼
- */
-export const BIGMODEL_ERROR_CODES = {
-  INVALID_API_KEY: 'invalid_api_key',
-  RATE_LIMIT: 'rate_limit_exceeded',
-  QUOTA_EXCEEDED: 'quota_exceeded',
-  INVALID_REQUEST: 'invalid_request',
-  SERVER_ERROR: 'server_error'
-};
-
-/**
- * BigModel 錯誤訊息映射
- */
-export const BIGMODEL_ERROR_MESSAGES = {
-  invalid_api_key: {
-    'zh-TW': 'API 金鑰無效',
-    'en-US': 'Invalid API key',
-    'ja-JP': 'APIキーが無効です',
-    'ko-KR': 'API 키가 유효하지 않습니다'
-  },
-  rate_limit_exceeded: {
-    'zh-TW': '請求過於頻繁，請稍後再試',
-    'en-US': 'Rate limit exceeded, please try again later',
-    'ja-JP': 'リクエストが頻繁すぎます。後でもう一度お試しください',
-    'ko-KR': '요청이 너무 빈번합니다. 나중에 다시 시도해 주세요'
-  },
-  quota_exceeded: {
-    'zh-TW': '配額已用完',
-    'en-US': 'Quota exceeded',
-    'ja-JP': 'クォータを超過しました',
-    'ko-KR': '할당량을 초과했습니다'
-  },
-  invalid_request: {
-    'zh-TW': '請求格式錯誤',
-    'en-US': 'Invalid request',
-    'ja-JP': '無効なリクエスト',
-    'ko-KR': '잘못된 요청'
-  },
-  server_error: {
-    'zh-TW': '伺服器錯誤，請稍後再試',
-    'en-US': 'Server error, please try again later',
-    'ja-JP': 'サーバーエラーです。後でもう一度お試しください',
-    'ko-KR': '서버 오류입니다. 나중에 다시 시도해 주세요'
-  }
 };
 
 // ========== 錯誤代碼 ==========
@@ -285,10 +139,7 @@ export const STORAGE_KEYS = {
   INPUT_MODE: 'kilo_input_mode',
   THEME: 'kilo_theme',
   AUTO_SPEAK: 'kilo_auto_speak',
-  STREAM_MODE: 'kilo_stream_mode',
-  TRANSLATION_SERVICE: 'kilo_translation_service',
-  BIGMODEL_API_KEY: 'kilo_bigmodel_api_key',
-  BIGMODEL_MODEL: 'kilo_bigmodel_model'
+  STREAM_MODE: 'kilo_stream_mode'
 };
 
 // ========== API 金鑰來源 ==========
@@ -537,7 +388,7 @@ export const CSP_POLICY = {
   'script-src': "'self' 'unsafe-inline' 'unsafe-eval'",
   'style-src': "'self' 'unsafe-inline'",
   'img-src': "'self' data: https:",
-  'connect-src': "'self' https://openrouter.ai https://open.bigmodel.cn"
+  'connect-src': "'self' https://openrouter.ai"
 };
 
 // ========== 危險模式（用於輸入驗證）==========

@@ -5,7 +5,6 @@ import { describe, it, expect } from 'vitest';
 import {
   languageMap,
   aiModels,
-  bigModelModels,
   modelCategories,
   freeModelsOnly,
 } from '../src/js/models.js';
@@ -38,17 +37,6 @@ describe('aiModels', () => {
     for (const [id] of freeOnes) {
       expect(id).toMatch(/:free$/);
     }
-  });
-});
-
-describe('bigModelModels', () => {
-  it('is an object of model definitions', () => {
-    expect(typeof bigModelModels).toBe('object');
-    expect(Object.keys(bigModelModels).length).toBeGreaterThan(0);
-  });
-
-  it('contains glm-4.7-flash', () => {
-    expect(bigModelModels).toHaveProperty('glm-4.7-flash');
   });
 });
 

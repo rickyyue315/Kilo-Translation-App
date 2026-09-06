@@ -2,7 +2,7 @@
   "name": "kilo-voice-translator",
   "version": "3.0.0",
   "type": "module",
-  "description": "Kilo 即時語音翻譯器 - 模組化 Vite 架構，支援 OpenRouter + BigModel 雙 API，可部署於 Zeabur / Netlify",
+  "description": "Kilo 即時語音翻譯器 - 模組化 Vite 架構，OpenRouter 翻譯 + 語音辨識，可部署於 Zeabur / Netlify",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -20,7 +20,6 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.1"
   },
   "devDependencies": {

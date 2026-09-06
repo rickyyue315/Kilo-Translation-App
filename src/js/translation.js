@@ -2,7 +2,7 @@
 
 import { i18n } from './i18n.js';
 import { languageMap } from './models.js';
-import { isLikelyTargetLanguage, buildStrictLanguageRule, needsEnglishTranslation } from './utils.js';
+import { needsEnglishTranslation } from './utils.js';
 
 // ========== Module State ==========
 
@@ -44,101 +44,6 @@ const translationStylePrompts = {
 };
 
 // ========== System Prompt Generators ==========
-
-/**
- * BigModel 翻譯提示詞生成
- * @param {string} targetLang - 目標語言代碼
- * @param {string} sourceLang - 來源語言代碼
- * @param {string} style - 翻譯風格 (normal/natural/formal/simple/academic)
- * @param {boolean} strict - 是否啟用嚴格語言驗證
- * @param {string} interfaceLanguage - 當前介面語言
- * @returns {string} 系統提示詞
- */
-export function getBigModelSystemPrompt(targetLang, sourceLang, style = 'normal', strict = false, interfaceLanguage = 'en-US') {
-    const stylePrompt = translationStylePrompts[style] || '';
-    const prompts = {
-        'zh-TW': `你是一個專業的翻譯助手。請將${languageMap[sourceLang]}準確翻譯成${languageMap[targetLang]}。
-重要規則：
-1. 必須將整段內容翻譯成目標語言：${languageMap[targetLang]}
-2. 保持原文的語氣和含義
-3. 只返回翻譯結果，不要添加任何解釋或額外內容
-4. 專有名詞、品牌名稱、人名、地名等應根據目標語言的慣例處理
-5. 輸入可能包含混合語言（中英文夾雜或其他語言），請智能識別並正確翻譯
-特定語言翻譯規則：
-- 翻譯成日文時：請確保輸出的是正確的日文（平假名、片假名、漢字），不要翻譯成中文（簡體或繁體）
-- 翻譯成韓文時：請確保輸出的是正確的韓文，不要翻譯成中文或日文
-- 翻譯成繁體中文時：請確保輸出的是繁體中文，不要翻譯成簡體中文
-- 翻譯成簡體中文時：請確保輸出的是簡體中文，不要翻譯成繁體中文
-- 翻譯成法文時：請確保輸出的是正確的法文，包含正確的變音符號
-- 翻譯成西班牙文時：請確保輸出的是正確的西班牙文，包含正確的重音符號
-- 翻譯成英文時：請確保輸出的是正確的英文，不要翻譯成其他語言`,
-        'zh-CN': `你是一个专业的翻译助手。请将${languageMap[sourceLang]}准确翻译成${languageMap[targetLang]}。
-重要规则：
-1. 必须将整段内容翻译成目标语言：${languageMap[targetLang]}
-2. 保持原文的语气和含义
-3. 只返回翻译结果，不要添加任何解释或额外内容
-4. 专有名词、品牌名称、人名、地名等应根据目标语言的惯例处理
-5. 输入可能包含混合语言（中英文夹杂或其他语言），请智能识别并正确翻译
-特定语言翻译规则：
-- 翻译成日文时：请确保输出的是正确的日文（平假名、片假名、汉字），不要翻译成中文（简体或繁体）
-- 翻译成韩文时：请确保输出的是正确的韩文，不要翻译成中文或日文
-- 翻译成繁体中文时：请确保输出的是繁体中文，不要翻译成简体中文
-- 翻译成简体中文时：请确保输出的是简体中文，不要翻译成繁体中文
-- 翻译成法文时：请确保输出的是正确的法文，包含正确的变音符号
-- 翻译成西班牙文时：请确保输出的是正确的西班牙文，包含正确的重音符号
-- 翻译成英文时：请确保输出的是正确的英文，不要翻译成其他语言`,
-        'en-US': `You are a professional translation assistant. Please accurately translate user's input into ${languageMap[targetLang]}.
-Important Rules:
-1. Must translate entire content into target language: ${languageMap[targetLang]}
-2. Maintain original tone and meaning
-3. Only return translation result, do not add any explanations or additional content
-4. Proper nouns, brand names, person names, place names, etc. should be processed according to target language conventions
-5. The input may contain mixed languages (Chinese-English mixed or other languages), please intelligently identify and translate correctly
-Specific Language Translation Rules:
-- When translating to Japanese: Please ensure output is correct Japanese (hiragana, katakana, kanji), do not translate into Chinese (simplified or traditional)
-- When translating to Korean: Please ensure output is correct Korean, do not translate into Chinese or Japanese
-- When translating to Traditional Chinese: Please ensure output is Traditional Chinese, do not translate into Simplified Chinese
-- When translating to Simplified Chinese: Please ensure output is Simplified Chinese, do not translate into Traditional Chinese
-- When translating to French: Please ensure output is correct French, including correct accent marks
-- When translating to Spanish: Please ensure output is correct Spanish, including correct accent marks
-- When translating to English: Please ensure output is correct English, do not translate into other languages`,
-        'ja-JP': `あなたはプロフェッショナルな翻訳アシスタントです。${languageMap[sourceLang]}を正確に${languageMap[targetLang]}に翻訳してください。
-重要なルール：
-1. 全体の内容をターゲット言語：${languageMap[targetLang]}に翻訳する必要があります
-2. 原文のトーンと意味を維持してください
-3. 翻訳結果のみを返し、説明や追加コンテンツを追加しないでください
-4. 固有名詞、ブランド名、人名、地名などはターゲット言語の慣習に従って処理してください
-5. 入力は混合言語（中国語と英語の混在や他の言語）を含む場合があるため、インテリジェントに識別して正しく翻訳してください
-特定言語の翻訳ルール：
-- 日本語に翻訳する場合：正しい日本語（ひらがな、カタカナ、漢字）を出力し、中国語（簡体字または繁体字）に翻訳しないでください
-- 韓国語に翻訳する場合：正しい韓国語を出力し、中国語や日本語に翻訳しないでください
-- 繁体字中国語に翻訳する場合：繁体字中国語を出力し、簡体字中国語に翻訳しないでください
-- 簡体字中国語に翻訳する場合：簡体字中国語を出力し、繁体字中国語に翻訳しないでください
-- フランス語に翻訳する場合：正しいフランス語を出力し、正しいアクセント記号を含めてください
-- スペイン語に翻訳する場合：正しいスペイン語を出力し、正しいアクセント記号を含めてください
-- 英語に翻訳する場合：正しい英語を出力し、他の言語に翻訳しないでください`,
-        'ko-KR': `당신은 전문 번역 도우미입니다. ${languageMap[sourceLang]}를 정확하게 ${languageMap[targetLang]}로 번역하세요.
-중요 규칙:
-1. 전체 내용을 목표 언어: ${languageMap[targetLang]}로 번역해야 합니다
-2. 원문의 어조와 의미를 유지하세요
-3. 번역 결과만 반환하고, 설명이나 추가 내용을 추가하지 마세요
-4. 고유명사, 브랜드명, 인명, 지명 등은 목표 언어의 관습에 따라 처리하세요
-5. 입력은 혼합 언어(중국어와 영어 혼용 또는 다른 언어)를 포함할 수 있으므로, 지능적으로 식별하고 올바르게 번역하세요
-특정 언어 번역 규칙:
-- 일본어로 번역할 때: 올바른 일본어(히라가나, 가타카나, 한자)를 출력하고, 중국어(간체 또는 번체)로 번역하지 마세요
-- 한국어로 번역할 때: 올바른 한국어를 출력하고, 중국어나 일본어로 번역하지 마세요
-- 번체 중국어로 번역할 때: 번체 중국어를 출력하고, 간체 중국어로 번역하지 마세요
-- 간체 중국어로 번역할 때: 간체 중국어를 출력하고, 번체 중국어로 번역하지 마세요
-- 프랑스어로 번역할 때: 올바른 프랑스어를 출력하고, 올바른 악센트 기호를 포함하세요
-- 스페인어로 번역할 때: 올바른 스페인어를 출력하고, 올바른 악센트 기호를 포함하세요
-- 영어로 번역할 때: 올바른 영어를 출력하고, 다른 언어로 번역하지 마세요`
-    };
-
-    const prompt = prompts[interfaceLanguage] || prompts['en-US'];
-    const strictRule = strict ? `\n\n${buildStrictLanguageRule(targetLang)}` : '';
-    const combinedPrompt = `${prompt}${strictRule}`;
-    return stylePrompt ? `${combinedPrompt}\n\n${stylePrompt}` : combinedPrompt;
-}
 
 /**
  * 根據介面語言生成翻譯提示詞 (OpenRouter 用)
@@ -358,12 +263,7 @@ async function postTranslate(requestBody, signal) {
 
 /**
  * Unified SSE stream response handler.
- * Replaces the 5 duplicate handlers from the original code:
- * - handleBigModelStreamResponse
- * - handleStreamResponse
- * - handleNetlifyStreamResponse
- * - handleNetlifyStandardResponse
- * - handleStandardResponse
+ * Handles both SSE/streaming and standard JSON translation responses.
  *
  * @param {Response} response - fetch Response object
  * @param {HTMLElement|null} targetElement - DOM element to update progressively (optional)
@@ -474,15 +374,13 @@ export async function handleStreamResponse(response, targetElement = null, optio
  * @param {string} text - 要翻譯的文字
  * @param {string} sourceLang - 來源語言代碼
  * @param {string} targetLang - 目標語言代碼
- * @param {object} elements - DOM 元素引用 { aiModel, customModelInput, streamMode, serverApiKey, bigmodelApiKey, apiKey }
+ * @param {object} elements - DOM 元素引用 { aiModel, customModelInput, streamMode, serverApiKey, apiKey }
  * @param {object} options - 選項
  * @param {string} options.interfaceLanguage - 當前介面語言
  * @returns {Promise<string>} 翻譯結果文字
  */
 export async function performTranslation(text, sourceLang, targetLang, elements, options = {}) {
     const { interfaceLanguage = 'en-US' } = options;
-    const translationService = localStorage.getItem('translation_service') || 'openrouter';
-    const isStreamMode = elements.streamMode.checked;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 35000);
 
@@ -500,34 +398,23 @@ export async function performTranslation(text, sourceLang, targetLang, elements,
             }
         }
 
-        if (translationService === 'bigmodel') {
-            // BigModel 走 Netlify Function 代理（JWT 須在伺服端產生）
-            return await translateWithBigModelServerDirect(text, sourceLang, targetLang, {
+        // 使用 OpenRouter API
+        const useServerApiKey = elements.serverApiKey.checked;
+        if (useServerApiKey) {
+            return await translateWithServerAPIDirect(text, sourceLang, targetLang, {
                 selectedModel,
                 controller,
                 timeoutId,
-                isStreamMode,
                 style
             });
         } else {
-            // 使用 OpenRouter API
-            const useServerApiKey = elements.serverApiKey.checked;
-            if (useServerApiKey) {
-                return await translateWithServerAPIDirect(text, sourceLang, targetLang, {
-                    selectedModel,
-                    controller,
-                    timeoutId,
-                    style
-                });
-            } else {
-                return await translateWithClientAPIDirect(text, sourceLang, targetLang, elements, {
-                    selectedModel,
-                    controller,
-                    timeoutId,
-                    style,
-                    interfaceLanguage
-                });
-            }
+            return await translateWithClientAPIDirect(text, sourceLang, targetLang, elements, {
+                selectedModel,
+                controller,
+                timeoutId,
+                style,
+                interfaceLanguage
+            });
         }
     } finally {
         clearTimeout(timeoutId);
@@ -587,60 +474,6 @@ export async function translateWithServerAPIDirect(text, sourceLang, targetLang,
         return content;
     } else {
         throw new Error('伺服器返回的數據格式錯誤');
-    }
-}
-
-/**
- * 透過後端代理使用 BigModel API（JWT 由伺服端產生）
- * @param {string} text - 要翻譯的文字
- * @param {string} sourceLang - 來源語言代碼
- * @param {string} targetLang - 目標語言代碼
- * @param {object} opts - { selectedModel, controller, timeoutId, isStreamMode, style }
- * @returns {Promise<string>}
- */
-export async function translateWithBigModelServerDirect(text, sourceLang, targetLang, opts = {}) {
-    const { selectedModel, controller, timeoutId, isStreamMode = false, style = 'normal' } = opts;
-
-    const requestBody = {
-        text,
-        sourceLang,
-        targetLang,
-        model: selectedModel,
-        stream: isStreamMode,
-        style,
-        service: 'bigmodel'
-    };
-
-    const response = await postTranslate(requestBody, controller.signal);
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-        let errorMessage = `BigModel 翻譯服務請求失敗: ${response.status}`;
-        try {
-            const errorData = await response.json();
-            errorMessage += ` - ${errorData.error || response.statusText}`;
-        } catch (e) {
-            errorMessage += ` - ${response.statusText}`;
-        }
-        if (response.status === 404) {
-            errorMessage = '找不到翻譯服務端點。若你在本機開發，請先啟動後端（`npm start` 或 `netlify dev`）。';
-        }
-        throw new Error(errorMessage);
-    }
-
-    // 伺服端回傳 text/plain (stream) 或 application/json (standard)
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('text/plain')) {
-        const content = await response.text();
-        if (!content) throw new Error('伺服器未返回有效的翻譯結果');
-        return content;
-    } else {
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-        const content = data.choices?.[0]?.message?.content;
-        if (!content) throw new Error('伺服器返回的數據格式錯誤');
-        return content;
     }
 }
 
@@ -711,128 +544,6 @@ export async function translateWithClientAPIDirect(text, sourceLang, targetLang,
         return content;
     } else {
         throw new Error('伺服器返回的數據格式錯誤');
-    }
-}
-
-/**
- * 使用 BigModel API 金鑰直接翻譯（返回翻譯結果，含語言驗證重試）
- * @param {string} text - 要翻譯的文字
- * @param {string} sourceLang - 來源語言代碼
- * @param {string} targetLang - 目標語言代碼
- * @param {object} elements - DOM 元素引用 { bigmodelApiKey, targetText }
- * @param {object} opts - { selectedModel, controller, timeoutId, isStreamMode, style, interfaceLanguage, strict }
- * @returns {Promise<string>}
- */
-export async function translateWithBigModelDirect(text, sourceLang, targetLang, elements, opts = {}) {
-    const {
-        selectedModel,
-        controller,
-        timeoutId,
-        isStreamMode = false,
-        style = 'normal',
-        interfaceLanguage = 'en-US',
-        strict = false
-    } = opts;
-    const translations = i18n[interfaceLanguage];
-    const apiKey = elements.bigmodelApiKey.value.trim();
-
-    if (!apiKey) {
-        throw new Error(translations.enterBigModelApiKey || '請輸入 BigModel API 金鑰');
-    }
-
-    const requestBody = {
-        model: selectedModel,
-        messages: [
-            {
-                role: 'system',
-                content: getBigModelSystemPrompt(targetLang, sourceLang, style, strict, interfaceLanguage)
-            },
-            {
-                role: 'user',
-                content: text
-            }
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-        stream: isStreamMode
-    };
-
-    const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-        let errorMessage = `BigModel API 請求失敗: ${response.status}`;
-        try {
-            const errorData = await response.json();
-            errorMessage += ` - ${errorData.error?.message || errorData.message || response.statusText}`;
-        } catch (e) {
-            errorMessage += ` - ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
-    }
-
-    if (isStreamMode) {
-        // 流式處理 - use unified handler, return result only
-        const targetEl = elements.targetText || null;
-        const streamResult = await handleStreamResponse(response, targetEl, {
-            isSSE: true,
-            returnOnly: true
-        });
-
-        // 語言驗證重試邏輯
-        if (!strict && !isLikelyTargetLanguage(streamResult, targetLang)) {
-            const retryController = new AbortController();
-            const retryTimeoutId = setTimeout(() => retryController.abort(), 35000);
-            return await translateWithBigModelDirect(
-                text, sourceLang, targetLang, elements,
-                {
-                    selectedModel,
-                    controller: retryController,
-                    timeoutId: retryTimeoutId,
-                    isStreamMode: false,
-                    style,
-                    interfaceLanguage,
-                    strict: true
-                }
-            );
-        }
-        return streamResult;
-    } else {
-        // 標準處理
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-
-        if (content) {
-            // 語言驗證重試邏輯
-            if (!strict && !isLikelyTargetLanguage(content, targetLang)) {
-                const retryController = new AbortController();
-                const retryTimeoutId = setTimeout(() => retryController.abort(), 35000);
-                return await translateWithBigModelDirect(
-                    text, sourceLang, targetLang, elements,
-                    {
-                        selectedModel,
-                        controller: retryController,
-                        timeoutId: retryTimeoutId,
-                        isStreamMode: false,
-                        style,
-                        interfaceLanguage,
-                        strict: true
-                    }
-                );
-            }
-            return content;
-        } else {
-            throw new Error('伺服器返回的數據格式錯誤');
-        }
     }
 }
 
@@ -1092,7 +803,7 @@ export async function translateWithBrowser(text, sourceLang, targetLang, element
 /**
  * 雙人模式翻譯入口
  * @param {string} text - 要翻譯的文字
- * @param {object} elements - DOM 元素引用 { sourceLanguage, targetLanguage, dualTargetText, englishText, streamMode, aiModel, customModelInput, serverApiKey, bigmodelApiKey, apiKey, playTranslation }
+ * @param {object} elements - DOM 元素引用 { sourceLanguage, targetLanguage, dualTargetText, englishText, streamMode, aiModel, customModelInput, serverApiKey, apiKey, playTranslation }
  * @param {object} state - { currentUser, interfaceLanguage, updateStatus, showError, hideError, addToHistoryInDualMode }
  * @returns {Promise<void>}
  */
@@ -1108,7 +819,6 @@ export async function translateTextInDualMode(text, elements, state = {}) {
 
     let sourceLang, targetLang;
     const translations = i18n[interfaceLanguage];
-    const translationService = localStorage.getItem('translation_service') || 'openrouter';
 
     if (currentUser === 'A') {
         sourceLang = elements.sourceLanguage.value;
@@ -1134,7 +844,7 @@ export async function translateTextInDualMode(text, elements, state = {}) {
     elements.englishText.textContent = '';
 
     // 設置流式模式樣式
-    if (translationService === 'bigmodel' && elements.streamMode.checked) {
+    if (elements.streamMode.checked) {
         elements.dualTargetText.classList.add('streaming');
     }
 
@@ -1189,7 +899,7 @@ export async function translateTextInDualMode(text, elements, state = {}) {
 /**
  * 單人模式翻譯入口
  * @param {string} text - 要翻譯的文字
- * @param {object} elements - DOM 元素引用 { sourceLanguage, targetLanguage, targetText, englishTextSingle, streamMode, aiModel, customModelInput, serverApiKey, bigmodelApiKey, apiKey, playTranslation }
+ * @param {object} elements - DOM 元素引用 { sourceLanguage, targetLanguage, targetText, englishTextSingle, streamMode, aiModel, customModelInput, serverApiKey, apiKey, playTranslation }
  * @param {object} state - { interfaceLanguage, updateStatus, showError, hideError, addToHistory }
  * @returns {Promise<void>}
  */
@@ -1221,8 +931,7 @@ export async function translateText(text, elements, state = {}) {
     elements.englishTextSingle.textContent = '';
 
     // 設置流式模式樣式
-    const translationService = localStorage.getItem('translation_service') || 'openrouter';
-    if (translationService === 'bigmodel' && elements.streamMode.checked) {
+    if (elements.streamMode.checked) {
         elements.targetText.classList.add('streaming');
     }
 

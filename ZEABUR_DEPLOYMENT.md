@@ -7,7 +7,7 @@
 ```
 瀏覽器 ──► node server.js（Zeabur / Docker / 本機）
               ├─ 靜態檔：dist/（Vite build 產物）
-              ├─ POST /api/translate   → OpenRouter / BigModel 翻譯
+              ├─ POST /api/translate   → OpenRouter 翻譯
               ├─ POST /api/transcribe  → OpenRouter ASR（4 個語音模型）
               └─ GET  /api/health      → 健康檢查
 ```
@@ -32,7 +32,6 @@ Netlify 部署方式不受影響。
 | 變數 | 必填 | 說明 |
 |------|------|------|
 | `OPENROUTER_API_KEY` | ✅ | OpenRouter 金鑰（翻譯 + ASR 伺服器端代理共用）。到 https://openrouter.ai/ 申請 |
-| `BIGMODEL_API_KEY` | 選填 | 智譜 BigModel 金鑰（`id.secret` 格式），只用 BigModel 翻譯路徑時需要 |
 | `APP_URL` | 選填 | 部署後的公開網址，用作 OpenRouter `HTTP-Referer` |
 | `CORS_ORIGIN` | 選填 | 預設 `*` |
 | `PORT` | 自動 | Zeabur 自動注入，不需手動設定 |
@@ -85,7 +84,7 @@ curl http://localhost:3000/api/health
 
 ## Netlify（保留相容）
 
-- `netlify.toml`、`netlify/functions/translate.js` 保持不變，可照舊部署。
-- 新增 `netlify/functions/transcribe.mjs`（ASR 代理，與 `server.js` 共用 `api/_shared.js` 邏輯）。
+- `netlify.toml`、`netlify/functions/translate.mjs` 保持不變，可照舊部署。
+- `netlify/functions/transcribe.mjs`（ASR 代理，與 `server.js` 共用 `api/_shared.js` 邏輯）。
 - 前端會先試 `/api/*`，404 時自動 fallback 到 `/.netlify/functions/*`，
   因此同一份 `dist/` 在 Zeabur 與 Netlify 都能運作。

@@ -96,7 +96,7 @@ export function needsEnglishTranslation(sourceLang, targetLang) {
 }
 
 /**
- * 目標語言檢測（用於 BigModel 輸出驗證）
+ * 目標語言檢測（用於輸出驗證）
  * 包含 Chinese, Japanese, Korean, French, Spanish, German, Portuguese,
  * Russian, Arabic, Hindi, Thai, Vietnamese 的 regex 模式
  */
@@ -160,7 +160,6 @@ export function createVolumeIndicator(container) {
  * @param {object} elements - DOM 元素參考物件
  * @param {object} callbacks - 回呼函式物件
  * @param {function} callbacks.updateHistoryDisplay - 更新歷史紀錄顯示
- * @param {function} callbacks.showBigModelModels - 顯示 BigModel 模型列表
  * @param {function} callbacks.filterModelsForServerAPI - 篩選伺服器 API 可用模型
  * @param {function} callbacks.showAllModels - 顯示所有模型
  * @param {function} callbacks.updateModelDescription - 更新模型描述
@@ -172,7 +171,6 @@ export function createVolumeIndicator(container) {
 export function loadSavedData(elements, callbacks) {
     const {
         updateHistoryDisplay,
-        showBigModelModels,
         filterModelsForServerAPI,
         showAllModels,
         updateModelDescription,
@@ -193,50 +191,29 @@ export function loadSavedData(elements, callbacks) {
     const savedMode = localStorage.getItem('translation_mode');
     const savedModel = localStorage.getItem('selected_ai_model');
     const savedApiKey = localStorage.getItem('openrouter_api_key');
-    const savedBigModelApiKey = localStorage.getItem('bigmodel_api_key');
-    const savedTranslationService = localStorage.getItem('translation_service') || 'openrouter';
     const savedApiKeySource = localStorage.getItem('api_key_source') || 'server';
 
     // 始終使用 OpenRouter API
     elements.translationModeSection.classList.remove('hidden');
 
-    // 載入翻譯服務選擇
-    if (savedTranslationService === 'bigmodel') {
-        elements.bigmodelService.checked = true;
-        elements.openrouterService.checked = false;
-        elements.bigmodelApiKeySection.classList.remove('hidden');
+    // 載入 OpenRouter API 金鑰
+    if (savedApiKey) {
+        elements.apiKey.value = savedApiKey;
+    }
 
-        // 載入 BigModel API 金鑰
-        if (savedBigModelApiKey) {
-            elements.bigmodelApiKey.value = savedBigModelApiKey;
-        }
-
-        // 顯示 BigModel 模型
-        showBigModelModels();
+    // 根據 API 金鑰來源決定顯示哪些模型
+    if (savedApiKeySource === 'server') {
+        elements.serverApiKey.checked = true;
+        elements.userApiKey.checked = false;
+        elements.userApiKeySection.classList.add('hidden');
+        elements.serverApiKeySection.classList.remove('hidden');
+        filterModelsForServerAPI(); // 只顯示免費模型
     } else {
-        elements.openrouterService.checked = true;
-        elements.bigmodelService.checked = false;
-        elements.bigmodelApiKeySection.classList.add('hidden');
-
-        // 載入 OpenRouter API 金鑰
-        if (savedApiKey) {
-            elements.apiKey.value = savedApiKey;
-        }
-
-        // 根據 API 金鑰來源決定顯示哪些模型
-        if (savedApiKeySource === 'server') {
-            elements.serverApiKey.checked = true;
-            elements.userApiKey.checked = false;
-            elements.userApiKeySection.classList.add('hidden');
-            elements.serverApiKeySection.classList.remove('hidden');
-            filterModelsForServerAPI(); // 只顯示免費模型
-        } else {
-            elements.userApiKey.checked = true;
-            elements.serverApiKey.checked = false;
-            elements.userApiKeySection.classList.remove('hidden');
-            elements.serverApiKeySection.classList.add('hidden');
-            showAllModels(); // 顯示所有模型
-        }
+        elements.userApiKey.checked = true;
+        elements.serverApiKey.checked = false;
+        elements.userApiKeySection.classList.remove('hidden');
+        elements.serverApiKeySection.classList.add('hidden');
+        showAllModels(); // 顯示所有模型
     }
 
     if (savedMode === 'standard') {
