@@ -444,7 +444,8 @@ input[type="checkbox"] { width: 1.1rem; height: 1.1rem; accent-color: var(--colo
 
 /* Dual-mic row: each side taps their own mic, languages auto-mirror.
    Shown only when the body carries .dual-mode (set by updateVoiceChatVisibility
-   whenever the dual transcript section is visible). */
+   whenever the dual transcript section is visible). Placed directly under the
+   visualizer so both sides see it before the live caption. */
 .dual-mic-row { display: none; }
 body.dual-mode .dual-mic-row { display: grid; }
 .dual-hint { display: none; }

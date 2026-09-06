@@ -268,7 +268,7 @@ export function loadSavedData(elements, callbacks) {
         switchToVoiceMode();
     }
 
-    // 載入雙人模式輸入設定
+    // 載入雙人模式輸入設定（預設語音對話：面對面直接按 A/B 咪）
     const savedDualInputMode = localStorage.getItem('dual_input_mode');
     if (callbacks.switchToDualTextMode || callbacks.switchToDualVoiceChatMode || callbacks.switchToDualVoiceMode) {
         if (savedDualInputMode === 'text') {
@@ -276,16 +276,16 @@ export function loadSavedData(elements, callbacks) {
             if (elements.dualVoiceInputMode) elements.dualVoiceInputMode.checked = false;
             if (elements.dualVoiceChatInputMode) elements.dualVoiceChatInputMode.checked = false;
             if (callbacks.switchToDualTextMode) callbacks.switchToDualTextMode();
-        } else if (savedDualInputMode === 'voice-chat') {
+        } else if (savedDualInputMode === 'voice') {
+            if (elements.dualVoiceInputMode) elements.dualVoiceInputMode.checked = true;
+            if (elements.dualVoiceChatInputMode) elements.dualVoiceChatInputMode.checked = false;
+            if (elements.dualTextInputMode) elements.dualTextInputMode.checked = false;
+            if (callbacks.switchToDualVoiceMode) callbacks.switchToDualVoiceMode();
+        } else {
             if (elements.dualVoiceChatInputMode) elements.dualVoiceChatInputMode.checked = true;
             if (elements.dualVoiceInputMode) elements.dualVoiceInputMode.checked = false;
             if (elements.dualTextInputMode) elements.dualTextInputMode.checked = false;
             if (callbacks.switchToDualVoiceChatMode) callbacks.switchToDualVoiceChatMode();
-        } else if (callbacks.switchToDualVoiceMode) {
-            if (elements.dualVoiceInputMode) elements.dualVoiceInputMode.checked = true;
-            if (callbacks.switchToDualVoiceChatMode || callbacks.switchToDualTextMode) {
-                callbacks.switchToDualVoiceMode();
-            }
         }
     }
 

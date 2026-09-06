@@ -451,6 +451,14 @@ export function handleModeChange(mode, elements) {
         elements.swapUsers.classList.remove('hidden');
         localStorage.setItem('translation_mode_type', 'dual');
         updateUserLabels(elements);
+        // 雙人預設就是面對面語音對話：自動切到語音對話輸入，
+        // 這樣語音對話面板 + A/B 雙咪會直接出現，不用再找開關。
+        if (elements.dualVoiceChatInputMode) {
+            elements.dualVoiceChatInputMode.checked = true;
+            if (elements.dualVoiceInputMode) elements.dualVoiceInputMode.checked = false;
+            if (elements.dualTextInputMode) elements.dualTextInputMode.checked = false;
+            switchToDualVoiceChatMode(elements);
+        }
     } else {
         // 切換到單人模式
         elements.singleTranscriptSection.classList.remove('hidden');
