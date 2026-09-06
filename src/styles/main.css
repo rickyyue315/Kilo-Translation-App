@@ -120,6 +120,13 @@ html[data-theme="dark"] {
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-overflow-scrolling: touch; }
 html { scroll-behavior: smooth; }
 
+:root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+}
+
 body {
     font-family: var(--font-sans);
     background:
@@ -127,16 +134,22 @@ body {
         var(--color-bg);
     color: var(--color-text);
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: flex-start;
     padding: var(--space-6);
+    padding-top: calc(var(--space-6) + var(--sat));
+    padding-bottom: calc(var(--space-6) + var(--sab));
+    padding-left: calc(var(--space-6) + var(--sal));
+    padding-right: calc(var(--space-6) + var(--sar));
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background 0.25s ease, color 0.25s ease;
+    overscroll-behavior-y: contain;
 }
-body.mobile-device { padding: 0; }
+body.mobile-device { padding: 0; padding-top: var(--sat); padding-bottom: var(--sab); }
 
 button, select, input, textarea { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 select, input, textarea { font-size: 16px; }
@@ -166,7 +179,7 @@ select, input, textarea { font-size: 16px; }
     margin: auto;
 }
 @media (max-width: 640px) {
-    .container, .app-shell { padding: var(--space-5); border-radius: 0; border: none; box-shadow: none; }
+    .container, .app-shell { padding: var(--space-4); padding-bottom: calc(var(--space-4) + var(--sab)); border-radius: 0; border: none; box-shadow: none; }
 }
 
 /* Header */
@@ -192,9 +205,13 @@ h1 .logo-mark { width: 2.25rem; height: 2.25rem; border-radius: var(--radius-md)
 .subtitle { color: var(--color-text-muted); font-size: 0.9rem; font-weight: 400; margin-top: 2px; }
 .header-actions { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 @media (max-width: 640px) {
-    .app-header, .header-top { flex-direction: column; align-items: stretch; }
-    .header-actions { justify-content: flex-end; }
-    h1 { font-size: 1.3rem; }
+    .app-header, .header-top { flex-direction: row; align-items: center; flex-wrap: wrap; }
+    .brand { flex: 1 1 auto; }
+    .header-actions { justify-content: flex-end; margin-left: auto; }
+    h1 { font-size: 1.15rem; }
+    .subtitle { display: none; }
+    .settings-toggle span { display: none; }
+    .settings-toggle { padding: var(--space-2) var(--space-3); }
 }
 
 .icon-btn {
@@ -494,13 +511,20 @@ body.dual-mode .dual-hint { display: block; }
 @media (max-width: 640px) {
     .dual-mic-row { grid-template-columns: 1fr; }
     .dual-mic-vs { display: none; }
-    .dual-mic { padding: var(--space-3) var(--space-4); }
+    .dual-mic { padding: var(--space-3) var(--space-4); min-height: 3.75rem; }
+    .dual-mic-icon { width: 2.75rem; height: 2.75rem; }
+    .dual-mic-icon svg { width: 1.35rem; height: 1.35rem; }
 }
 
 /* Context window setting row */
 .context-window-row { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
 .context-window-label { font-size: 0.85rem; }
 .context-window-select { width: auto; min-width: 5rem; padding: var(--space-2) var(--space-3); }
+
+/* Dual-mode: the A/B mics inside the voice panel are the recorders;
+   keep the solo hero orb out of the way on every viewport. */
+body.dual-voice-chat .main-controls { display: none; }
+body.dual-mode:not(.dual-voice-chat) .main-controls .record-hint { display: none; }
 
 /* Chat-style conversation turns */
 .vc-turn.is-latest { border-color: var(--color-primary); box-shadow: var(--shadow-md); }
@@ -570,6 +594,7 @@ html[data-theme="dark"] .btn-primary { color: #fff; }
     display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); margin-bottom: var(--space-6);
 }
 .transcript-section-dual.hidden { display: none; }
+.transcript-section-single.hidden { display: none; }
 .transcript-box {
     background: var(--color-surface); border: 1px solid var(--color-border);
     border-radius: var(--radius-lg); padding: var(--space-5); min-height: 220px;
@@ -591,8 +616,24 @@ html[data-theme="dark"] .btn-primary { color: #fff; }
     .transcript-section, .transcript-section-single, .transcript-section-dual { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
-    .transcript-box { min-height: 160px; padding: var(--space-4); }
-    .transcript-content { min-height: 90px; }
+    .voice-chat-panel { padding: var(--space-4); }
+    .vc-header { margin-bottom: var(--space-3); }
+    .vc-visualizer { height: 52px; margin-bottom: var(--space-3); }
+    .vc-live { padding: var(--space-3); margin-bottom: var(--space-3); }
+    .vc-turns { max-height: 46dvh; overscroll-behavior: contain; }
+    .vc-turn { padding: var(--space-3); }
+    .vc-bubble { font-size: 1rem; }
+    .vc-bubble-target { font-size: 1.06rem; }
+
+    .transcript-box { min-height: 0; padding: var(--space-4); }
+    .transcript-content { min-height: 64px; font-size: 1.02rem; }
+    .transcript-content.result { font-size: 1.1rem; }
+
+    .toolbar { gap: var(--space-2); }
+    .toolbar .btn { flex: 1 1 40%; min-height: 3rem; }
+
+    .modal-backdrop { padding: var(--space-3); padding-bottom: calc(var(--space-3) + var(--sab)); align-items: flex-end; }
+    .modal { max-width: 100%; border-radius: var(--radius-lg); }
 }
 
 /* Additional translations */
@@ -688,12 +729,33 @@ html[data-theme="dark"] .btn-primary { color: #fff; }
 .text-sm { font-size: 0.85rem; } .text-muted { color: var(--color-text-muted); }
 .hidden { display: none !important; }
 
-/* Sticky mic on mobile */
+/* Sticky mic on mobile — single mode keeps the hero orb;
+   dual voice-chat mode pins the A/B mics instead (solo orb is hidden
+   globally, see above) so the two sides never fight for thumbs. */
 @media (max-width: 640px) {
-    .main-controls { position: sticky; bottom: 12px; z-index: 50; padding: var(--space-3); }
+    .main-controls { position: sticky; bottom: calc(12px + var(--sab)); z-index: 50; padding: var(--space-3); }
     .record-button { width: 5rem; height: 5rem; }
     .record-status { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); padding: 4px 14px; box-shadow: var(--shadow-md); }
     .record-hint { display: none; }
+
+    body.dual-voice-chat .dual-mic-row {
+        position: sticky; bottom: calc(10px + var(--sab)); z-index: 60;
+        grid-template-columns: 1fr 1fr; gap: var(--space-2);
+        background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--color-border); border-radius: var(--radius-xl);
+        padding: var(--space-2);
+        box-shadow: var(--shadow-lg);
+        margin-left: calc(-1 * var(--space-2));
+        margin-right: calc(-1 * var(--space-2));
+    }
+    body.dual-voice-chat .dual-mic-vs { display: none; }
+    body.dual-voice-chat .dual-mic { padding: var(--space-3); min-height: 4.25rem; }
+    body.dual-voice-chat .dual-mic-avatar { width: 2rem; height: 2rem; font-size: 0.95rem; }
+    body.dual-voice-chat .dual-mic-icon { width: 2.75rem; height: 2.75rem; }
+    body.dual-voice-chat .dual-mic-icon svg { width: 1.35rem; height: 1.35rem; }
+    body.dual-voice-chat .dual-mic-name { font-size: 0.85rem; }
+    body.dual-voice-chat .dual-mic-lang { font-size: 0.72rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

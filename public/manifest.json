@@ -1,26 +1,28 @@
 {
-  "name": "Kilo Voice Translator",
-  "short_name": "Kilo",
+  "name": "Kilo 即時語音翻譯器",
+  "short_name": "Kilo 翻譯",
   "description": "即時語音翻譯應用 — Real-time voice translation",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#0f172a",
-  "theme_color": "#0EA5E9",
+  "orientation": "portrait",
+  "background_color": "#f1f5f9",
+  "theme_color": "#2563eb",
   "lang": "zh-TW",
+  "dir": "ltr",
   "icons": [
     {
-      "src": "/images/icon-192.png",
+      "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/images/icon-512.png",
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/images/icon-512.png",
+      "src": "/icons/maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -29,16 +31,16 @@
   "categories": ["utilities", "education"],
   "shortcuts": [
     {
+      "name": "雙人對話翻譯",
+      "short_name": "雙人",
+      "url": "/?mode=dual",
+      "description": "開啟雙人語音對話翻譯"
+    },
+    {
       "name": "語音翻譯",
       "short_name": "語音",
       "url": "/?mode=voice",
       "description": "開啟語音翻譯模式"
-    },
-    {
-      "name": "文字翻譯",
-      "short_name": "文字",
-      "url": "/?mode=text",
-      "description": "開啟文字翻譯模式"
     }
   ]
 }

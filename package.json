@@ -5,7 +5,8 @@
   "description": "Kilo 即時語音翻譯器 - 模組化 Vite 架構，OpenRouter 翻譯 + 語音辨識，可部署於 Zeabur / Netlify",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run icons && vite build",
+    "icons": "node scripts/generate-icons.mjs",
     "preview": "vite preview",
     "start": "node server.js",
     "dev:netlify": "npx --yes netlify-cli@17 dev",
@@ -28,7 +29,8 @@
     "@vitest/coverage-v8": "^3.0.0",
     "eslint": "^9.0.0",
     "terser": "^5.36.0",
-    "jsdom": "^29.0.0"
+    "jsdom": "^29.0.0",
+    "sharp": "^0.34.0"
   },
   "keywords": [
     "translation",

@@ -46,6 +46,6 @@ export default [
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'netlify/', '*.backup', 'tests/', 'src/index.js', 'src/config.js', 'src/constants.js'],
+    ignores: ['dist/', 'dist-verify*/', 'node_modules/', 'netlify/', '*.backup', 'tests/', 'src/index.js', 'src/config.js', 'src/constants.js', 'scripts/'],
   },
 ];

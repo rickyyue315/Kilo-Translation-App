@@ -3,11 +3,13 @@
  * Cache-first for static assets, network-first for API calls.
  */
 
-const CACHE_NAME = 'kilo-v3';
+const CACHE_NAME = 'kilo-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
 // Install: pre-cache shell
