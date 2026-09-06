@@ -176,10 +176,10 @@ export function loadSavedData(elements, callbacks) {
         updateModelDescription,
         switchToTextMode,
         switchToVoiceMode,
+        switchToVoiceChatMode,
         handleModeChange,
         setTranslationHistory
     } = callbacks;
-
     // 載入翻譯歷史
     const savedHistory = localStorage.getItem('translation_history');
     if (savedHistory) {
@@ -238,6 +238,19 @@ export function loadSavedData(elements, callbacks) {
     // 確保模型描述正確顯示
     updateModelDescription(elements.aiModel.value);
 
+    // 載入翻譯模式類型（單人/雙人）——先決定模式，輸入模式再跟著走，
+    // 否則 switchTo*VoiceChatMode 在 dual section 仍 hidden 時會誤判可見性。
+    const savedModeType = localStorage.getItem('translation_mode_type');
+    if (savedModeType === 'dual') {
+        elements.dualModeType.checked = true;
+        elements.singleModeType.checked = false;
+        handleModeChange('dual');
+    } else {
+        elements.singleModeType.checked = true;
+        elements.dualModeType.checked = false;
+        handleModeChange('single');
+    }
+
     // 載入輸入模式設定
     const savedInputMode = localStorage.getItem('input_mode');
     if (savedInputMode === 'text') {
@@ -249,7 +262,8 @@ export function loadSavedData(elements, callbacks) {
         elements.voiceChatInputMode.checked = true;
         elements.voiceInputMode.checked = false;
         elements.textInputMode.checked = false;
-        switchToVoiceMode();
+        if (switchToVoiceChatMode) switchToVoiceChatMode();
+        else switchToVoiceMode();
     } else {
         switchToVoiceMode();
     }
@@ -267,19 +281,12 @@ export function loadSavedData(elements, callbacks) {
             if (elements.dualVoiceInputMode) elements.dualVoiceInputMode.checked = false;
             if (elements.dualTextInputMode) elements.dualTextInputMode.checked = false;
             if (callbacks.switchToDualVoiceChatMode) callbacks.switchToDualVoiceChatMode();
+        } else if (callbacks.switchToDualVoiceMode) {
+            if (elements.dualVoiceInputMode) elements.dualVoiceInputMode.checked = true;
+            if (callbacks.switchToDualVoiceChatMode || callbacks.switchToDualTextMode) {
+                callbacks.switchToDualVoiceMode();
+            }
         }
-    }
-
-    // 載入翻譯模式類型（單人/雙人）
-    const savedModeType = localStorage.getItem('translation_mode_type');
-    if (savedModeType === 'dual') {
-        elements.dualModeType.checked = true;
-        elements.singleModeType.checked = false;
-        handleModeChange('dual');
-    } else {
-        elements.singleModeType.checked = true;
-        elements.dualModeType.checked = false;
-        handleModeChange('single');
     }
 
     // 載入翻譯風格

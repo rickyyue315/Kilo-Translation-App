@@ -130,11 +130,21 @@ describe('voice-chat visibility helpers', () => {
   it('shows the panel only in voice-chat mode', () => {
     updateVoiceChatVisibility();
     expect(document.getElementById('voiceChatPanel').classList.contains('hidden')).toBe(true);
+    expect(document.body.classList.contains('dual-mode')).toBe(false);
     document.querySelector('input[name="inputMode"][value="voice-chat"]').checked = true;
     updateVoiceChatVisibility();
     expect(document.getElementById('voiceChatPanel').classList.contains('hidden')).toBe(false);
     setVoiceChatPanelVisible(false);
     expect(document.getElementById('voiceChatPanel').classList.contains('hidden')).toBe(true);
+  });
+
+  it('toggles dual-mode body class with the dual section', () => {
+    document.getElementById('singleTranscriptSection').classList.add('hidden');
+    document.getElementById('dualTranscriptSection').classList.remove('hidden');
+    document.querySelector('input[name="dualInputMode"][value="voice-chat"]').checked = true;
+    updateVoiceChatVisibility();
+    expect(document.body.classList.contains('dual-mode')).toBe(true);
+    expect(document.getElementById('voiceChatPanel').classList.contains('hidden')).toBe(false);
   });
 
   it('reads the auto-play checkbox with localStorage fallback', () => {

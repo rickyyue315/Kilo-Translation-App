@@ -209,26 +209,23 @@ export function updateVoiceChatVisibility() {
     const dual = $('dualTranscriptSection');
     const singleVisible = single ? !single.classList.contains('hidden') : true;
     const dualVisible = dual ? !dual.classList.contains('hidden') : false;
-    let show = false;
-    let dualChat = false;
-    try {
-        if (singleVisible) {
-            show = show || document.querySelector('input[name="inputMode"]:checked')?.value === 'voice-chat';
-        }
-        if (dualVisible) {
-            dualChat = document.querySelector('input[name="dualInputMode"]:checked')?.value === 'voice-chat';
-            show = show || dualChat;
-        }
-    } catch {
-        show = false;
-        dualChat = false;
-    }
+    const singleChat = getInputValue('inputMode') === 'voice-chat';
+    const dualChat = getInputValue('dualInputMode') === 'voice-chat';
+    const show = (singleVisible && singleChat) || (dualVisible && dualChat);
     setVoiceChatPanelVisible(show);
     try {
         document.body.classList.toggle('dual-mode', dualVisible);
         document.body.classList.toggle('dual-voice-chat', dualVisible && dualChat);
     } catch {
         // ignore DOM failures (non-browser env)
+    }
+}
+
+function getInputValue(name) {
+    try {
+        return document.querySelector(`input[name="${name}"]:checked`)?.value || '';
+    } catch {
+        return '';
     }
 }
 
