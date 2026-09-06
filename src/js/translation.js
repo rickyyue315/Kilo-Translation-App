@@ -6,7 +6,10 @@ import { needsEnglishTranslation } from './utils.js';
 import { playTranslation } from './speech.js';
 import {
     addVoiceChatTurn,
+    getDualContextWindow,
+    getRecentConversationTurns,
     getVoiceChatAutoPlay,
+    isDualContextEnabled,
     isVoiceChatMode,
     setVoiceChatLive,
     setVoiceChatState,
@@ -50,6 +53,24 @@ const translationStylePrompts = {
     'simple': '翻譯風格要求：風格要淺白，像在跟小朋友解釋一樣。',
     'academic': '翻譯風格要求：風格要適合學術人士，使用專業術語。'
 };
+
+/**
+ * Build compact conversation-history messages for coherent dual dialogue.
+ * Caps at ~6 entries and ~120 chars each to keep latency low.
+ * @param {Array<{speaker: string, sourceText: string, targetText: string}>|null} history
+ * @returns {Array<{role: string, content: string}>}
+ */
+export function buildHistoryMessages(history) {
+    if (!Array.isArray(history) || history.length === 0) return [];
+    return history.slice(-6).flatMap((entry) => {
+        const who = entry.speaker === 'B' ? 'B' : 'A';
+        const src = String(entry.sourceText || '').slice(0, 120);
+        const tgt = String(entry.targetText || '').slice(0, 120);
+        if (!src && !tgt) return [];
+        const pair = src && tgt ? `${who}: ${src} → ${tgt}` : `${who}: ${src || tgt}`;
+        return [{ role: 'user', content: `[對話脈絡] ${pair}` }];
+    });
+}
 
 // ========== System Prompt Generators ==========
 
@@ -388,7 +409,7 @@ export async function handleStreamResponse(response, targetElement = null, optio
  * @returns {Promise<string>} 翻譯結果文字
  */
 export async function performTranslation(text, sourceLang, targetLang, elements, options = {}) {
-    const { interfaceLanguage = 'en-US' } = options;
+    const { interfaceLanguage = 'en-US', history = null } = options;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 35000);
 
@@ -413,7 +434,8 @@ export async function performTranslation(text, sourceLang, targetLang, elements,
                 selectedModel,
                 controller,
                 timeoutId,
-                style
+                style,
+                history
             });
         } else {
             return await translateWithClientAPIDirect(text, sourceLang, targetLang, elements, {
@@ -421,7 +443,8 @@ export async function performTranslation(text, sourceLang, targetLang, elements,
                 controller,
                 timeoutId,
                 style,
-                interfaceLanguage
+                interfaceLanguage,
+                history
             });
         }
     } finally {
@@ -440,7 +463,7 @@ export async function performTranslation(text, sourceLang, targetLang, elements,
  * @returns {Promise<string>}
  */
 export async function translateWithServerAPIDirect(text, sourceLang, targetLang, opts = {}) {
-    const { selectedModel, controller, timeoutId, style = 'normal' } = opts;
+    const { selectedModel, controller, timeoutId, style = 'normal', history = null } = opts;
 
     const requestBody = {
         text,
@@ -450,6 +473,9 @@ export async function translateWithServerAPIDirect(text, sourceLang, targetLang,
         stream: false,
         style
     };
+    if (Array.isArray(history) && history.length > 0) {
+        requestBody.history = history;
+    }
 
     const response = await postTranslate(requestBody, controller.signal);
 
@@ -495,7 +521,7 @@ export async function translateWithServerAPIDirect(text, sourceLang, targetLang,
  * @returns {Promise<string>}
  */
 export async function translateWithClientAPIDirect(text, sourceLang, targetLang, elements, opts = {}) {
-    const { selectedModel, controller, timeoutId, style = 'normal', interfaceLanguage = 'en-US' } = opts;
+    const { selectedModel, controller, timeoutId, style = 'normal', interfaceLanguage = 'en-US', history = null } = opts;
     const translations = i18n[interfaceLanguage];
     const apiKey = elements.apiKey.value.trim();
 
@@ -510,6 +536,7 @@ export async function translateWithClientAPIDirect(text, sourceLang, targetLang,
                 role: 'system',
                 content: getTranslationSystemPrompt(targetLang, sourceLang, style, interfaceLanguage)
             },
+            ...buildHistoryMessages(history),
             {
                 role: 'user',
                 content: text
@@ -809,15 +836,17 @@ export async function translateWithBrowser(text, sourceLang, targetLang, element
 }
 
 /**
- * 雙人模式翻譯入口
+ * 雙人模式翻譯入口 — A/B 各自按咪，語言自動對照，保留上下文連貫翻譯。
  * @param {string} text - 要翻譯的文字
  * @param {object} elements - DOM 元素引用 { sourceLanguage, targetLanguage, dualTargetText, englishText, streamMode, aiModel, customModelInput, serverApiKey, apiKey, playTranslation }
- * @param {object} state - { currentUser, interfaceLanguage, updateStatus, showError, hideError, addToHistoryInDualMode }
+ * @param {object} state - { currentUser, speaker, history, interfaceLanguage, updateStatus, showError, hideError, addToHistoryInDualMode }
  * @returns {Promise<void>}
  */
 export async function translateTextInDualMode(text, elements, state = {}) {
     const {
         currentUser = 'A',
+        speaker = null,
+        history = null,
         interfaceLanguage = 'en-US',
         updateStatus,
         showError,
@@ -825,16 +854,25 @@ export async function translateTextInDualMode(text, elements, state = {}) {
         addToHistoryInDualMode
     } = state;
 
+    const activeSpeaker = speaker === 'B' ? 'B' : currentUser === 'B' ? 'B' : 'A';
+
     let sourceLang, targetLang;
     const translations = i18n[interfaceLanguage];
     const voiceChat = isVoiceChatMode();
 
-    if (currentUser === 'A') {
+    // 雙咪自動對照：A 說來源語→目標語，B 說目標語→來源語
+    if (activeSpeaker === 'A') {
         sourceLang = elements.sourceLanguage.value;
         targetLang = elements.targetLanguage.value;
     } else {
         sourceLang = elements.targetLanguage.value;
         targetLang = elements.sourceLanguage.value;
+    }
+
+    // 對話上下文（預設保留最近 N 輪，保持代名詞與術語連貫）
+    let conversationHistory = Array.isArray(history) ? history : null;
+    if (!conversationHistory && isDualContextEnabled()) {
+        conversationHistory = getRecentConversationTurns(getDualContextWindow());
     }
 
     // 檢查文字長度
@@ -873,15 +911,15 @@ export async function translateTextInDualMode(text, elements, state = {}) {
             elements.englishText.textContent = translations.translating || '翻譯中...';
 
             // 第一步：來源語言 → 英語
-            const englishResult = await performTranslation(text, sourceLang, 'en-US', elements, { interfaceLanguage });
+            const englishResult = await performTranslation(text, sourceLang, 'en-US', elements, { interfaceLanguage, history: conversationHistory });
             englishTranslation = englishResult;
             elements.englishText.textContent = englishTranslation;
 
             // 第二步：英語 → 目標語言
-            finalTranslation = await performTranslation(englishTranslation, 'en-US', targetLang, elements, { interfaceLanguage });
+            finalTranslation = await performTranslation(englishTranslation, 'en-US', targetLang, elements, { interfaceLanguage, history: conversationHistory });
         } else {
-            // 直接翻譯
-            finalTranslation = await performTranslation(text, sourceLang, targetLang, elements, { interfaceLanguage });
+            // 直接翻譯（上下文讓連續對話更流暢）
+            finalTranslation = await performTranslation(text, sourceLang, targetLang, elements, { interfaceLanguage, history: conversationHistory });
             elements.englishText.textContent = translations.noEnglishReference || '不需要英語參考';
         }
 
@@ -906,10 +944,10 @@ export async function translateTextInDualMode(text, elements, state = {}) {
             setVoiceChatState('idle');
             setVoiceChatLive(finalTranslation, false);
             addVoiceChatTurn({
-                speaker: currentUser === 'A'
+                speaker: activeSpeaker === 'A'
                     ? (translations.userA || '使用者 A')
                     : (translations.userB || '使用者 B'),
-                speakerClass: currentUser === 'A' ? 'speaker-a' : 'speaker-b',
+                speakerClass: activeSpeaker === 'A' ? 'speaker-a' : 'speaker-b',
                 sourceText: text,
                 targetText: finalTranslation,
                 englishText: englishTranslation,
@@ -927,10 +965,10 @@ export async function translateTextInDualMode(text, elements, state = {}) {
         if (voiceChat) {
             setVoiceChatState('idle');
             addVoiceChatTurn({
-                speaker: currentUser === 'A'
+                speaker: activeSpeaker === 'A'
                     ? (translations.userA || '使用者 A')
                     : (translations.userB || '使用者 B'),
-                speakerClass: currentUser === 'A' ? 'speaker-a' : 'speaker-b',
+                speakerClass: activeSpeaker === 'A' ? 'speaker-a' : 'speaker-b',
                 sourceText: text,
                 error: `${translations.translationFailed || '翻譯失敗'}: ${error.message}`,
             });

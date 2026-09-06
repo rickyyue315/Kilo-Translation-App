@@ -139,7 +139,15 @@ export const i18n = {
         voiceChatEmpty: '還沒有對話，按下下方麥克風開始第一句',
         clearConversation: '清除對話',
         tapOrbHint: '語音對話模式會自動辨識、翻譯並朗讀',
-        copyFailed: '複製失敗'
+        copyFailed: '複製失敗',
+        voiceChatDualHint: '雙人模式：各自按自己的咪，自動對照雙方語言並保留對話脈絡',
+        dualContextLabel: '雙人對話保留上下文（翻譯更連貫）',
+        dualContextWindow: '保留輪數',
+        dualMicRecordA: '使用者 A 按此錄音',
+        dualMicRecordB: '使用者 B 按此錄音',
+        dualMicShortcutHint: '快捷鍵 A / B 快速錄音',
+        shortcutDualMicA: '使用者 A 錄音',
+        shortcutDualMicB: '使用者 B 錄音'
     },
     'zh-CN': {
         asrModelLabel: '语音识别模型',
@@ -279,7 +287,15 @@ export const i18n = {
         voiceChatEmpty: '还没有对话，按下下方麦克风开始第一句',
         clearConversation: '清除对话',
         tapOrbHint: '语音对话模式会自动识别、翻译并朗读',
-        copyFailed: '复制失败'
+        copyFailed: '复制失败',
+        voiceChatDualHint: '双人模式：各自按自己的麦，自动对照双方语言并保留对话脉络',
+        dualContextLabel: '双人对话保留上下文（翻译更连贯）',
+        dualContextWindow: '保留轮数',
+        dualMicRecordA: '用户 A 按此录音',
+        dualMicRecordB: '用户 B 按此录音',
+        dualMicShortcutHint: '快捷键 A / B 快速录音',
+        shortcutDualMicA: '用户 A 录音',
+        shortcutDualMicB: '用户 B 录音'
     },
     'en-US': {
         asrModelLabel: 'Speech Recognition Model',
@@ -419,7 +435,15 @@ export const i18n = {
         voiceChatEmpty: 'No conversation yet — tap the mic below to start',
         clearConversation: 'Clear chat',
         tapOrbHint: 'Voice chat auto-transcribes, translates and reads aloud',
-        copyFailed: 'Copy failed'
+        copyFailed: 'Copy failed',
+        voiceChatDualHint: 'Dual mode: each side taps their own mic — languages mirror automatically with conversation context',
+        dualContextLabel: 'Keep conversation context in dual mode (more coherent)',
+        dualContextWindow: 'Turns to keep',
+        dualMicRecordA: 'User A: tap to record',
+        dualMicRecordB: 'User B: tap to record',
+        dualMicShortcutHint: 'Shortcuts A / B for quick record',
+        shortcutDualMicA: 'User A record',
+        shortcutDualMicB: 'User B record'
     },
     'ja-JP': {
         asrModelLabel: '音声認識モデル',
@@ -559,7 +583,15 @@ export const i18n = {
         voiceChatEmpty: 'まだ会話がありません。下のマイクを押して開始しましょう',
         clearConversation: '会話をクリア',
         tapOrbHint: 'ボイスチャットは自動で認識・翻訳・読み上げします',
-        copyFailed: 'コピーに失敗しました'
+        copyFailed: 'コピーに失敗しました',
+        voiceChatDualHint: 'デュアルモード：それぞれ自分のマイクを押すと言語が自動対応し、会話の文脈を保持します',
+        dualContextLabel: 'デュアル会話の文脈を保持（より自然な翻訳）',
+        dualContextWindow: '保持ターン数',
+        dualMicRecordA: 'ユーザーA：押して録音',
+        dualMicRecordB: 'ユーザーB：押して録音',
+        dualMicShortcutHint: 'ショートカット A / B でクイック録音',
+        shortcutDualMicA: 'ユーザーA 録音',
+        shortcutDualMicB: 'ユーザーB 録音'
     },
     'ko-KR': {
         asrModelLabel: '음성 인식 모델',
@@ -699,7 +731,15 @@ export const i18n = {
         voiceChatEmpty: '아직 대화가 없습니다. 아래 마이크를 눌러 시작하세요',
         clearConversation: '대화 지우기',
         tapOrbHint: '음성 대화는 자동으로 인식·번역·읽어줍니다',
-        copyFailed: '복사 실패'
+        copyFailed: '복사 실패',
+        voiceChatDualHint: '듀얼 모드: 각자 자신의 마이크를 누르면 언어가 자동 대응되고 대화 맥락이 유지됩니다',
+        dualContextLabel: '듀얼 대화 맥락 유지 (더 자연스러운 번역)',
+        dualContextWindow: '유지할 턴 수',
+        dualMicRecordA: '사용자 A: 눌러서 녹음',
+        dualMicRecordB: '사용자 B: 눌러서 녹음',
+        dualMicShortcutHint: '단축키 A / B로 빠른 녹음',
+        shortcutDualMicA: '사용자 A 녹음',
+        shortcutDualMicB: '사용자 B 녹음'
     }
 };
 

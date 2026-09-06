@@ -7,8 +7,8 @@ import { initializeSpeechRecognition, startRecording, stopRecording, playTransla
 import { OPENROUTER_ASR_MODELS, getSavedAsrModel, setSavedAsrModel } from './js/asr.js';
 import { translateText, translateTextInDualMode, performTranslation, getCurrentTranslation } from './js/translation.js';
 import { addToHistory, addToHistoryInDualMode, updateHistoryDisplay, clearHistory, setTranslationHistory, attachHistoryListeners } from './js/history.js';
-import { setupEventListeners, handleModeChange, swapUsers, updateUserLabels, updateStatus, showError, hideError, showSuccess, animateVolumeIndicator, initTooltipPositioning, initTheme, getIsDualMode, getCurrentUser, switchToTextMode, switchToVoiceMode, switchToVoiceChatMode, switchToDualVoiceMode, switchToDualVoiceChatMode, switchToDualTextMode, populateExtraTargetCheckboxes } from './js/ui.js';
-import { ensureVisualizerBars, setVoiceChatLive, AUTOPLAY_STORAGE_KEY, updateVoiceChatVisibility } from './js/voicechat.js';
+import { setupEventListeners, handleModeChange, swapUsers, updateUserLabels, refreshDualMicLabels, updateStatus, showError, hideError, showSuccess, animateVolumeIndicator, initTooltipPositioning, initTheme, getIsDualMode, getCurrentUser, switchToTextMode, switchToVoiceMode, switchToVoiceChatMode, switchToDualVoiceMode, switchToDualVoiceChatMode, switchToDualTextMode, populateExtraTargetCheckboxes } from './js/ui.js';
+import { ensureVisualizerBars, setVoiceChatLive, AUTOPLAY_STORAGE_KEY, CONTEXT_STORAGE_KEY, CONTEXT_WINDOW_STORAGE_KEY, updateVoiceChatVisibility } from './js/voicechat.js';
 
 // DOM Elements Registry
 const elements = {
@@ -143,11 +143,11 @@ function initializeApp() {
   
   // Initialize speech recognition
   initializeSpeechRecognition(elements, {
-    onTranslate: (text) => {
+    onTranslate: (text, extra = {}) => {
       if (getIsDualMode()) {
-        translateTextInDualMode(text, elements, getAppState());
+        translateTextInDualMode(text, elements, getAppState(extra));
       } else {
-        translateText(text, elements, getAppState());
+        translateText(text, elements, getAppState(extra));
       }
     },
     updateStatus: (status, msg) => updateStatus(status, msg, elements),
@@ -158,7 +158,7 @@ function initializeApp() {
   // Setup all event listeners
   setupEventListeners(elements, {
     translateText: (text) => translateText(text, elements, getAppState()),
-    translateTextInDualMode: (text) => translateTextInDualMode(text, elements, getAppState()),
+    translateTextInDualMode: (text, extra = {}) => translateTextInDualMode(text, elements, getAppState(extra)),
     clearHistory: () => clearHistory(elements),
     addToHistory: (...args) => addToHistory(...args, elements),
     showError: (msg) => showError(msg, elements),
@@ -275,6 +275,31 @@ function initializeApp() {
     }
   }
 
+  // Restore dual conversation context preference
+  const contextToggle = document.getElementById('dualContextToggle');
+  if (contextToggle) {
+    try {
+      const saved = localStorage.getItem(CONTEXT_STORAGE_KEY);
+      contextToggle.checked = saved === null ? true : saved !== 'false';
+    } catch {
+      contextToggle.checked = true;
+    }
+  }
+  const contextWindow = document.getElementById('dualContextWindow');
+  if (contextWindow) {
+    try {
+      const saved = localStorage.getItem(CONTEXT_WINDOW_STORAGE_KEY);
+      if (saved !== null && contextWindow.querySelector(`option[value="${saved}"]`)) {
+        contextWindow.value = saved;
+      }
+    } catch {
+      // ignore restore failures
+    }
+  }
+
+  // Paint dual-mic captions once at startup
+  refreshDualMicLabels(elements);
+
   // Voice-chat panel: visualizer skeleton + correct initial visibility
   ensureVisualizerBars();
   setVoiceChatLive(t('voiceChatLivePlaceholder') || '', true);
@@ -309,10 +334,12 @@ function initializeApp() {
 }
 
 // Get current application state (passed to translation functions)
-function getAppState() {
+function getAppState(extra = {}) {
   return {
     isDualMode: getIsDualMode(),
     currentUser: getCurrentUser(),
+    speaker: extra.speaker,
+    history: extra.history,
     translationMode: document.querySelector('input[name="translationMode"]:checked')?.value || 'stream',
     translationStyle: document.querySelector('input[name="translationStyle"]:checked')?.value || 'normal',
     apiKeySource: document.querySelector('input[name="apiKeySource"]:checked')?.value || 'server',

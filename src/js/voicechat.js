@@ -11,6 +11,9 @@ export const VOICE_CHAT_BAR_COUNT = 28;
 export const VOICE_CHAT_MAX_TURNS = 30;
 export const AUTOPLAY_STORAGE_KEY = 'kilo_auto_speak';
 export const THEME_STORAGE_KEY = 'kilo_theme';
+export const CONTEXT_STORAGE_KEY = 'kilo_dual_context';
+export const CONTEXT_WINDOW_STORAGE_KEY = 'kilo_dual_context_window';
+export const DEFAULT_CONTEXT_WINDOW = 4;
 
 function $(id) {
     return typeof document === 'undefined' ? null : document.getElementById(id);
@@ -207,17 +210,26 @@ export function updateVoiceChatVisibility() {
     const singleVisible = single ? !single.classList.contains('hidden') : true;
     const dualVisible = dual ? !dual.classList.contains('hidden') : false;
     let show = false;
+    let dualChat = false;
     try {
         if (singleVisible) {
             show = show || document.querySelector('input[name="inputMode"]:checked')?.value === 'voice-chat';
         }
         if (dualVisible) {
-            show = show || document.querySelector('input[name="dualInputMode"]:checked')?.value === 'voice-chat';
+            dualChat = document.querySelector('input[name="dualInputMode"]:checked')?.value === 'voice-chat';
+            show = show || dualChat;
         }
     } catch {
         show = false;
+        dualChat = false;
     }
     setVoiceChatPanelVisible(show);
+    try {
+        document.body.classList.toggle('dual-mode', dualVisible);
+        document.body.classList.toggle('dual-voice-chat', dualVisible && dualChat);
+    } catch {
+        // ignore DOM failures (non-browser env)
+    }
 }
 
 // ========== Conversation turns ==========
@@ -297,6 +309,9 @@ export function addVoiceChatTurn(opts) {
     const turn = document.createElement('article');
     turn.className = 'vc-turn';
     if (error) turn.classList.add('is-error');
+    const speakerSide = speakerClass === 'speaker-b' ? 'B' : 'A';
+    turn.setAttribute('data-speaker', speakerSide);
+    turn.classList.add(speakerSide === 'B' ? 'side-b' : 'side-a');
 
     const meta = document.createElement('div');
     meta.className = 'vc-turn-meta';
@@ -350,6 +365,8 @@ export function addVoiceChatTurn(opts) {
     list.appendChild(turn);
     empty = $('voiceChatEmpty');
     if (empty && empty.parentElement === list) list.appendChild(empty);
+    list.querySelectorAll('.vc-turn.is-latest').forEach((el) => el.classList.remove('is-latest'));
+    if (!error) turn.classList.add('is-latest');
     while (list.querySelectorAll('.vc-turn').length > VOICE_CHAT_MAX_TURNS) {
         const oldest = list.querySelector('.vc-turn');
         if (!oldest) break;
@@ -379,4 +396,114 @@ export function getVoiceChatTurnCount() {
     const list = $('voiceChatTurns');
     if (!list) return 0;
     return list.querySelectorAll('.vc-turn').length;
+}
+
+// ========== Dual conversation memory (context for coherent translation) ==========
+
+export function isDualContextEnabled() {
+    const box = $('dualContextToggle');
+    if (box) return box.checked;
+    try {
+        const saved = localStorage.getItem(CONTEXT_STORAGE_KEY);
+        return saved === null ? true : saved !== 'false';
+    } catch {
+        return true;
+    }
+}
+
+export function getDualContextWindow() {
+    const select = $('dualContextWindow');
+    if (select) {
+        const n = Number.parseInt(select.value, 10);
+        if (Number.isFinite(n) && n >= 0 && n <= 10) return n;
+    }
+    try {
+        const saved = Number.parseInt(localStorage.getItem(CONTEXT_WINDOW_STORAGE_KEY), 10);
+        if (Number.isFinite(saved) && saved >= 0 && saved <= 10) return saved;
+    } catch {
+        // ignore storage failures
+    }
+    return DEFAULT_CONTEXT_WINDOW;
+}
+
+/**
+ * Read the last N conversation turns from the voice-chat panel DOM.
+ * Each entry: { speaker: 'A'|'B', sourceText, targetText }.
+ * Pure DOM read — works in single or dual mode panels alike.
+ * @param {number} [limit]
+ * @returns {Array<{speaker: string, sourceText: string, targetText: string}>}
+ */
+export function getRecentConversationTurns(limit) {
+    const list = $('voiceChatTurns');
+    if (!list) return [];
+    const n = Number.isFinite(limit) ? limit : getDualContextWindow();
+    if (n <= 0) return [];
+    const textOf = (turn, selector) => {
+        const bubble = turn.querySelector(selector);
+        if (!bubble) return '';
+        return Array.from(bubble.childNodes)
+            .filter((node) => node.nodeType === 3)
+            .map((node) => node.textContent)
+            .join('')
+            .trim();
+    };
+    return Array.from(list.querySelectorAll('.vc-turn[data-speaker]'))
+        .slice(-n)
+        .map((turn) => ({
+            speaker: turn.getAttribute('data-speaker') || '',
+            sourceText: textOf(turn, '.vc-bubble-source'),
+            targetText: textOf(turn, '.vc-bubble-target'),
+        }))
+        .filter((entry) => entry.sourceText || entry.targetText);
+}
+
+/**
+ * Persist the dual-mic "which side is recording" indicator and paint both
+ * mic buttons. Pass 'A', 'B', or null to clear.
+ */
+export function setDualMicActive(side) {
+    const btnA = $('dualMicA');
+    const btnB = $('dualMicB');
+    [btnA, btnB].forEach((btn) => {
+        if (btn) {
+            btn.classList.remove('is-active');
+            btn.removeAttribute('aria-pressed');
+        }
+    });
+    const panel = $('voiceChatPanel');
+    if (panel) {
+        panel.classList.remove('mic-a-active', 'mic-b-active');
+        if (side === 'A') panel.classList.add('mic-a-active');
+        if (side === 'B') panel.classList.add('mic-b-active');
+    }
+    const active = side === 'A' ? btnA : side === 'B' ? btnB : null;
+    if (active) {
+        active.classList.add('is-active');
+        active.setAttribute('aria-pressed', 'true');
+    }
+}
+
+/**
+ * Paint the dual-mic name/language captions to mirror the current
+ * source/target selections and interface labels.
+ * @param {object} [opts] { sourceLang, targetLang, userA, userB }
+ */
+export function updateDualMicLabels(opts = {}) {
+    const nameA = $('dualMicNameA');
+    const nameB = $('dualMicNameB');
+    const langA = $('dualMicLangA');
+    const langB = $('dualMicLangB');
+    const btnA = $('dualMicA');
+    const btnB = $('dualMicB');
+    const { sourceLang = '', targetLang = '', userA = '', userB = '' } = opts;
+    if (nameA && userA) nameA.textContent = userA;
+    if (nameB && userB) nameB.textContent = userB;
+    if (langA && sourceLang) langA.textContent = sourceLang;
+    if (langB && targetLang) langB.textContent = targetLang;
+    if (btnA && (userA || sourceLang)) {
+        btnA.setAttribute('aria-label', `${userA || 'A'} · ${sourceLang}`);
+    }
+    if (btnB && (userB || targetLang)) {
+        btnB.setAttribute('aria-label', `${userB || 'B'} · ${targetLang}`);
+    }
 }

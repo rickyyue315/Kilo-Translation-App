@@ -16,6 +16,9 @@ import {
   stopVisualizer,
   setVoiceChatState,
   setVoiceChatLive,
+  setDualMicActive,
+  getRecentConversationTurns,
+  isDualContextEnabled,
 } from './voicechat.js';
 
 // Module-level state
@@ -27,6 +30,8 @@ let mediaRecorder = null;
 let mediaStream = null;
 let mediaChunks = [];
 let voiceConversationActive = false;
+// Which dual-mic side is recording ('A' | 'B' | null); cleared on stop.
+let activeDualSide = null;
 
 // Stored callbacks from initialization
 let _callbacks = {};
@@ -160,7 +165,7 @@ export function initializeSpeechRecognition(elements, callbacks) {
 /**
  * Toggle speech recognition on/off.
  * @param {object} elements
- * @param {object} [options]
+ * @param {object} [options] { isDualMode, currentUser, speaker }
  * @returns {boolean} new recording state
  */
 export function toggleRecording(elements, options = {}) {
@@ -173,9 +178,36 @@ export function toggleRecording(elements, options = {}) {
 }
 
 /**
+ * Dual-mic entry: tap A's or B's mic to record that side.
+ * Tapping the active side stops; tapping the other side while recording
+ * restarts the turn for that side (fluent back-and-forth).
+ * @param {object} elements
+ * @param {'A'|'B'} side
+ */
+export async function toggleDualMic(elements, side) {
+    if (isRecording) {
+        if (activeDualSide === side) {
+            setDualMicActive(null);
+            activeDualSide = null;
+            stopRecording(elements);
+            return false;
+        }
+        // Switch sides mid-flow: stop current capture, then start the new side.
+        setDualMicActive(null);
+        activeDualSide = null;
+        stopRecording(elements);
+        await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+    activeDualSide = side;
+    setDualMicActive(side);
+    startRecording(elements, { isDualMode: true, currentUser: side, speaker: side });
+    return true;
+}
+
+/**
  * Start speech recognition.
  * @param {object} elements
- * @param {object} [options]
+ * @param {object} [options] { isDualMode, currentUser, speaker }
  */
 export function startRecording(elements, options = {}) {
     const voiceChat = isVoiceConversationMode(elements);
@@ -242,7 +274,9 @@ export function stopRecording(elements) {
         recognition.stop();
     }
     isRecording = false;
+    activeDualSide = null;
     _updateRecordButton(elements, false);
+    setDualMicActive(null);
 }
 
 /**
@@ -253,7 +287,7 @@ export function stopRecording(elements) {
  * @param {object} [options] { isDualMode, currentUser }
  */
 export async function startVoiceConversation(elements, options = {}) {
-  const { isDualMode = false, currentUser = 'A' } = options;
+  const { isDualMode = false, currentUser = 'A', speaker = null } = options;
   if (voiceConversationActive) return;
 
   if (!isVoiceConversationSupported()) {
@@ -288,6 +322,7 @@ export async function startVoiceConversation(elements, options = {}) {
 
   voiceConversationActive = true;
   isRecording = true;
+  if (isDualMode) activeDualSide = speaker || currentUser;
   _updateRecordButton(elements, true);
   _callbacks.hideError();
   _callbacks.updateStatus('recording', t('statusRecording') || '正在聆聽...');
@@ -343,7 +378,10 @@ export async function startVoiceConversation(elements, options = {}) {
       if (sourceBox) sourceBox.textContent = text;
       setVoiceChatLive(text, false);
       _callbacks.updateStatus('ready', t('statusReady') || '準備就緒');
-      _callbacks.onTranslate(text);
+      _callbacks.onTranslate(text, {
+        speaker: isDualMode ? (speaker || currentUser) : undefined,
+        history: isDualMode && isDualContextEnabled() ? getRecentConversationTurns() : undefined,
+      });
     } catch (error) {
       console.error('語音對話轉錄失敗:', error);
       _callbacks.showError(error.message);
@@ -363,9 +401,11 @@ export async function startVoiceConversation(elements, options = {}) {
 
 function stopVoiceConversation(elements) {
   voiceConversationActive = false;
+  activeDualSide = null;
   stopChatTimer();
   stopVisualizer();
   setVoiceChatState('idle');
+  setDualMicActive(null);
   try {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   } catch (error) {

@@ -5,6 +5,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   VOICE_CHAT_BAR_COUNT,
   VOICE_CHAT_MAX_TURNS,
+  CONTEXT_WINDOW_STORAGE_KEY,
+  DEFAULT_CONTEXT_WINDOW,
   formatChatTime,
   ensureVisualizerBars,
   startChatTimer,
@@ -18,6 +20,11 @@ import {
   addVoiceChatTurn,
   clearVoiceChatTurns,
   getVoiceChatTurnCount,
+  isDualContextEnabled,
+  getDualContextWindow,
+  getRecentConversationTurns,
+  setDualMicActive,
+  updateDualMicLabels,
 } from '../src/js/voicechat.js';
 
 function mountShell() {
@@ -27,6 +34,12 @@ function mountShell() {
       <div id="voiceChatVisualizer"></div>
       <p id="voiceChatLiveText"></p>
       <div id="voiceChatTurns"><p id="voiceChatEmpty">empty</p></div>
+      <button id="dualMicA"></button>
+      <button id="dualMicB"></button>
+      <span id="dualMicNameA"></span>
+      <span id="dualMicNameB"></span>
+      <span id="dualMicLangA"></span>
+      <span id="dualMicLangB"></span>
     </section>
     <span id="recordTimer" class="hidden">00:00</span>
     <section id="singleTranscriptSection">
@@ -38,6 +51,12 @@ function mountShell() {
       <input type="radio" name="dualInputMode" value="voice-chat">
     </section>
     <input type="checkbox" id="voiceChatAutoPlay" checked>
+    <input type="checkbox" id="dualContextToggle" checked>
+    <select id="dualContextWindow">
+      <option value="0">0</option>
+      <option value="2">2</option>
+      <option value="4" selected>4</option>
+    </select>
   `;
 }
 
@@ -167,5 +186,47 @@ describe('chat timer', () => {
     expect(() => startChatTimer()).not.toThrow();
     expect(() => stopChatTimer()).not.toThrow();
     expect(document.getElementById('recordTimer').classList.contains('hidden')).toBe(true);
+  });
+});
+
+describe('dual conversation memory', () => {
+  it('context toggle defaults to enabled', () => {
+    expect(isDualContextEnabled()).toBe(true);
+    document.getElementById('dualContextToggle').checked = false;
+    expect(isDualContextEnabled()).toBe(false);
+  });
+
+  it('context window reads the select with a sane default', () => {
+    expect(getDualContextWindow()).toBe(4);
+    localStorage.setItem(CONTEXT_WINDOW_STORAGE_KEY, '2');
+    document.getElementById('dualContextWindow').remove();
+    expect(getDualContextWindow()).toBe(2);
+    expect(DEFAULT_CONTEXT_WINDOW).toBe(4);
+  });
+
+  it('returns the last N turns with speaker attribution', () => {
+    addVoiceChatTurn({ speaker: 'A', speakerClass: 'speaker-a', sourceText: 'hello', targetText: '你好' });
+    addVoiceChatTurn({ speaker: 'B', speakerClass: 'speaker-b', sourceText: 'thanks', targetText: '謝謝' });
+    const turns = getRecentConversationTurns(2);
+    expect(turns).toHaveLength(2);
+    expect(turns[0]).toMatchObject({ speaker: 'A', sourceText: 'hello', targetText: '你好' });
+    expect(turns[1]).toMatchObject({ speaker: 'B', sourceText: 'thanks', targetText: '謝謝' });
+    expect(getRecentConversationTurns(1)).toHaveLength(1);
+    expect(getRecentConversationTurns(0)).toHaveLength(0);
+  });
+
+  it('paints dual-mic active state and labels', () => {
+    const panel = document.getElementById('voiceChatPanel');
+    setDualMicActive('A');
+    expect(document.getElementById('dualMicA').classList.contains('is-active')).toBe(true);
+    expect(panel.classList.contains('mic-a-active')).toBe(true);
+    setDualMicActive('B');
+    expect(document.getElementById('dualMicB').classList.contains('is-active')).toBe(true);
+    expect(panel.classList.contains('mic-b-active')).toBe(true);
+    setDualMicActive(null);
+    expect(document.getElementById('dualMicA').classList.contains('is-active')).toBe(false);
+    updateDualMicLabels({ sourceLang: '中文', targetLang: 'English', userA: '甲', userB: '乙' });
+    expect(document.getElementById('dualMicNameA').textContent).toBe('甲');
+    expect(document.getElementById('dualMicLangB').textContent).toBe('English');
   });
 });

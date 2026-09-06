@@ -442,6 +442,69 @@ input[type="checkbox"] { width: 1.1rem; height: 1.1rem; accent-color: var(--colo
 .vc-turn.is-error { border-color: var(--color-danger); }
 .vc-error-text { color: var(--color-danger); font-size: 0.88rem; }
 
+/* Dual-mic row: each side taps their own mic, languages auto-mirror */
+.dual-mic-row.dual-only { display: none; }
+body.dual-mode .dual-mic-row.dual-only { display: grid; }
+p.vc-subtitle.dual-only { display: none; }
+body.dual-mode p.vc-subtitle.dual-only { display: block; }
+.dual-mic-row {
+    grid-template-columns: 1fr auto 1fr; gap: var(--space-3); align-items: stretch;
+    margin-bottom: var(--space-4);
+}
+.dual-mic {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-4); border-radius: var(--radius-lg);
+    border: 2px solid var(--color-border); background: var(--color-surface);
+    cursor: pointer; text-align: left; min-width: 0;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background 0.16s ease;
+}
+.dual-mic:hover { border-color: var(--color-border-strong); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.dual-mic:active { transform: translateY(0) scale(0.99); }
+.dual-mic-avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.5rem; height: 2.5rem; border-radius: 50%; flex-shrink: 0;
+    font-weight: 800; font-size: 1.1rem; color: #fff;
+}
+.mic-a .dual-mic-avatar { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-2)); }
+.mic-b .dual-mic-avatar { background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2)); }
+.dual-mic-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.dual-mic-name { font-weight: 700; font-size: 0.95rem; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dual-mic-lang { font-size: 0.8rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dual-mic-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.5rem; height: 2.5rem; border-radius: 50%; flex-shrink: 0;
+    background: var(--color-surface-2); border: 1px solid var(--color-border); color: var(--color-text-2);
+    transition: all 0.16s ease;
+}
+.dual-mic-icon svg { width: 1.2rem; height: 1.2rem; }
+.dual-mic.is-active { border-color: var(--color-danger); background: var(--color-danger-subtle); box-shadow: var(--shadow-glow-red); }
+.dual-mic.is-active .dual-mic-icon { background: var(--color-danger); border-color: var(--color-danger); color: #fff; animation: pulse-recording 1s ease-in-out infinite; }
+.dual-mic:disabled { opacity: 0.55; cursor: wait; }
+.dual-mic-vs {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.25rem; height: 2.25rem; border-radius: 50%; align-self: center;
+    background: var(--color-surface-3); border: 1px solid var(--color-border); color: var(--color-text-muted);
+}
+.dual-mic-vs svg { width: 1.1rem; height: 1.1rem; }
+.voice-chat-panel.mic-a-active { border-color: var(--color-primary); }
+.voice-chat-panel.mic-b-active { border-color: var(--color-accent); }
+@media (max-width: 640px) {
+    .dual-mic-row { grid-template-columns: 1fr; }
+    .dual-mic-vs { display: none; }
+    .dual-mic { padding: var(--space-3) var(--space-4); }
+}
+
+/* Context window setting row */
+.context-window-row { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+.context-window-label { font-size: 0.85rem; }
+.context-window-select { width: auto; min-width: 5rem; padding: var(--space-2) var(--space-3); }
+
+/* Chat-style conversation turns */
+.vc-turn.is-latest { border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+.vc-turn.side-a .vc-bubble-target { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-2)); }
+.vc-turn.side-b { border-color: var(--color-accent); }
+.vc-turn.side-b .vc-bubble-target { background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2)); }
+
 /* Main controls — hero mic */
 .main-controls { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); margin-bottom: var(--space-5); }
 .record-button {

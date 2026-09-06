@@ -8,14 +8,18 @@ import {
     showAllModels
 } from './models.js';
 import { getExtraTargetLanguages, setExtraTargetLanguages } from './translation.js';
-import { toggleRecording, startRecording, stopRecording, playTranslation, getIsRecording } from './speech.js';
+import { toggleRecording, toggleDualMic, startRecording, stopRecording, playTranslation, getIsRecording } from './speech.js';
 import {
     AUTOPLAY_STORAGE_KEY,
+    CONTEXT_STORAGE_KEY,
+    CONTEXT_WINDOW_STORAGE_KEY,
     THEME_STORAGE_KEY,
     clearVoiceChatTurns,
     updateVoiceChatVisibility,
+    updateDualMicLabels,
 } from './voicechat.js';
-import { loadSavedData, isMobileDevice } from './utils.js';
+import { loadSavedData as _loadSavedData, isMobileDevice as _isMobileDevice } from './utils.js';
+export { _loadSavedData as loadSavedData, _isMobileDevice as isMobileDevice };
 
 // ========== Module-level State ==========
 
@@ -60,6 +64,24 @@ export function setupEventListeners(elements, callbacks = {}) {
     if (elements.recordButton) {
         elements.recordButton.addEventListener('click', function () {
             toggleRecording(elements, { isDualMode: getIsDualMode(), currentUser: getCurrentUser() });
+        });
+    }
+
+    // Dual-mic buttons: each side taps their own mic
+    const dualMicA = document.getElementById('dualMicA');
+    const dualMicB = document.getElementById('dualMicB');
+    if (dualMicA) {
+        dualMicA.addEventListener('click', function () {
+            if (this.disabled) return;
+            setDualMicBusy(true);
+            toggleDualMic(elements, 'A').finally(() => setDualMicBusy(false));
+        });
+    }
+    if (dualMicB) {
+        dualMicB.addEventListener('click', function () {
+            if (this.disabled) return;
+            setDualMicBusy(true);
+            toggleDualMic(elements, 'B').finally(() => setDualMicBusy(false));
         });
     }
 
@@ -138,15 +160,17 @@ export function setupEventListeners(elements, callbacks = {}) {
         populateExtraTargetCheckboxes(elements);
     });
 
-    // Re-populate extra targets when source/target changes
+    // Dual-mic buttons are bound once; refresh their labels on language swap.
     if (elements.sourceLanguage) {
         elements.sourceLanguage.addEventListener('change', function () {
             populateExtraTargetCheckboxes(elements);
+            refreshDualMicLabels(elements);
         });
     }
     if (elements.targetLanguage) {
         elements.targetLanguage.addEventListener('change', function () {
             populateExtraTargetCheckboxes(elements);
+            refreshDualMicLabels(elements);
         });
     }
 
@@ -339,6 +363,28 @@ export function setupEventListeners(elements, callbacks = {}) {
         });
     }
 
+    // Dual conversation context toggle + window size
+    const contextToggle = document.getElementById('dualContextToggle');
+    if (contextToggle) {
+        contextToggle.addEventListener('change', function () {
+            try {
+                localStorage.setItem(CONTEXT_STORAGE_KEY, this.checked ? 'true' : 'false');
+            } catch {
+                // ignore persistence failures
+            }
+        });
+    }
+    const contextWindow = document.getElementById('dualContextWindow');
+    if (contextWindow) {
+        contextWindow.addEventListener('change', function () {
+            try {
+                localStorage.setItem(CONTEXT_WINDOW_STORAGE_KEY, this.value);
+            } catch {
+                // ignore persistence failures
+            }
+        });
+    }
+
     // Theme toggle
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
@@ -446,6 +492,31 @@ export function updateUserLabels(elements) {
     } else {
         elements.userALabel.textContent = `${translations.userA || '使用者 A'} (${targetLang})`;
         elements.userBLabel.textContent = `${translations.userB || '使用者 B'} (${sourceLang})`;
+    }
+
+    refreshDualMicLabels(elements);
+}
+
+export function refreshDualMicLabels(elements) {
+    if (!elements?.sourceLanguage || !elements?.targetLanguage) return;
+    const translations = _getTranslations();
+    updateDualMicLabels({
+        sourceLang: languageMap[elements.sourceLanguage.value] || elements.sourceLanguage.value,
+        targetLang: languageMap[elements.targetLanguage.value] || elements.targetLanguage.value,
+        userA: translations.userA || '使用者 A',
+        userB: translations.userB || '使用者 B',
+    });
+}
+
+function setDualMicBusy(busy) {
+    const btnA = document.getElementById('dualMicA');
+    const btnB = document.getElementById('dualMicB');
+    [btnA, btnB].forEach((btn) => {
+        if (btn) btn.disabled = Boolean(busy) && !getIsRecording();
+    });
+    if (!busy) {
+        if (btnA) btnA.disabled = false;
+        if (btnB) btnB.disabled = false;
     }
 }
 
@@ -666,6 +737,15 @@ export function closeConfirmClearModal() {
 
 // ========== Keyboard Shortcuts ==========
 
+function isDualVoiceChatActive() {
+    try {
+        if (!getIsDualMode()) return false;
+        return document.querySelector('input[name="dualInputMode"]:checked')?.value === 'voice-chat';
+    } catch {
+        return false;
+    }
+}
+
 export function handleGlobalKeydown(event, elements, callbacks) {
     const target = event.target;
     const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
@@ -708,6 +788,16 @@ export function handleGlobalKeydown(event, elements, callbacks) {
         event.preventDefault();
         toggleRecording(elements, { isDualMode: getIsDualMode(), currentUser: getCurrentUser() });
         return;
+    }
+
+    // A / B - dual-mic quick record in dual voice-chat mode (not when typing)
+    if (!isTyping && !event.ctrlKey && !event.metaKey && !event.altKey && getIsDualMode()) {
+        const key = event.key.toLowerCase();
+        if ((key === 'a' || key === 'b') && isDualVoiceChatActive()) {
+            event.preventDefault();
+            toggleDualMic(elements, key.toUpperCase() === 'A' ? 'A' : 'B');
+            return;
+        }
     }
 }
 

@@ -125,12 +125,15 @@ export const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-export function generateSystemPrompt(sourceLang, targetLang, style = 'normal') {
+export function generateSystemPrompt(sourceLang, targetLang, style = 'normal', history = null) {
   const stylePrompt = translationStylePrompts[style] || '';
+  const contextHint = sanitizeHistory(history).length > 0
+    ? '\n\n對話脈絡：下方 user 訊息中以 [對話脈絡] 開頭的是前幾輪對話（說話者 A/B 與其中譯），僅供參考以保持代名詞、術語與語氣連貫；請只翻譯最後一則非脈絡訊息。'
+    : '';
   return `你是一個專業的翻譯助手。請將${languageMap[sourceLang]}準確翻譯成${languageMap[targetLang]}。
 
 ${stylePrompt}
-
+${contextHint}
 重要規則：
 1. 必須將整段內容翻譯成目標語言：${languageMap[targetLang]}
 2. 保持原文的語氣和含義
@@ -148,11 +151,38 @@ ${stylePrompt}
 - 翻譯成英文時：請確保輸出的是正確的英文`;
 }
 
-export function buildRequestBody(text, sourceLang, targetLang, model, stream, style) {
+/**
+ * Sanitize client-supplied conversation history for the prompt.
+ * Keeps at most 6 entries, ~120 chars each, strict shape.
+ */
+export function sanitizeHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history
+    .filter((entry) => entry && typeof entry === 'object')
+    .slice(-6)
+    .map((entry) => ({
+      speaker: entry.speaker === 'B' ? 'B' : 'A',
+      sourceText: String(entry.sourceText || '').slice(0, 120),
+      targetText: String(entry.targetText || '').slice(0, 120),
+    }))
+    .filter((entry) => entry.sourceText || entry.targetText);
+}
+
+export function buildHistoryMessages(history) {
+  return sanitizeHistory(history).map((entry) => {
+    const pair = entry.sourceText && entry.targetText
+      ? `${entry.speaker}: ${entry.sourceText} → ${entry.targetText}`
+      : `${entry.speaker}: ${entry.sourceText || entry.targetText}`;
+    return { role: 'user', content: `[對話脈絡] ${pair}` };
+  });
+}
+
+export function buildRequestBody(text, sourceLang, targetLang, model, stream, style, history = null) {
   return {
     model,
     messages: [
-      { role: 'system', content: generateSystemPrompt(sourceLang, targetLang, style) },
+      { role: 'system', content: generateSystemPrompt(sourceLang, targetLang, style, history) },
+      ...buildHistoryMessages(history),
       { role: 'user', content: text },
     ],
     stream: stream || false,
@@ -194,7 +224,7 @@ export function appOrigin(referer) {
   return referer || process.env.APP_URL || 'https://kilo-translator.zeabur.app';
 }
 
-export async function translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style = 'normal') {
+export async function translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style = 'normal', history = null) {
   const API_KEY = process.env.OPENROUTER_API_KEY;
   if (!API_KEY) return { error: 'OpenRouter API key not configured on server', status: 500 };
   const selectedModel = model || 'minimax/minimax-m3:free';
@@ -220,7 +250,7 @@ export async function translateWithOpenRouter(text, sourceLang, targetLang, mode
           'HTTP-Referer': appOrigin(referer),
           'X-Title': 'Kilo Voice Translator',
         },
-        body: JSON.stringify(buildRequestBody(text, sourceLang, targetLang, currentModel, stream, style)),
+        body: JSON.stringify(buildRequestBody(text, sourceLang, targetLang, currentModel, stream, style, history)),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -338,7 +368,7 @@ export function handleHealth(_req, res) {
   });
 }
 
-async function runTranslate({ text, sourceLang, targetLang, model, stream, action, style, referer }) {
+async function runTranslate({ text, sourceLang, targetLang, model, stream, action, style, history, referer }) {
   if (action === 'getApiKey') {
     return {
       status: 200,
@@ -350,7 +380,7 @@ async function runTranslate({ text, sourceLang, targetLang, model, stream, actio
   if (!text || !sourceLang || !targetLang) {
     return { status: 400, payload: { error: 'Missing required parameters: text, sourceLang, targetLang' } };
   }
-  const result = await translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style);
+  const result = await translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style, history);
   if (result.error) return { status: result.status || 500, payload: { error: result.error } };
   if (result.stream) return { status: 200, raw: result.content, contentType: 'text/plain; charset=utf-8' };
   return { status: 200, payload: result.data };
