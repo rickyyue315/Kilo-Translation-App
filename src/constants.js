@@ -44,7 +44,7 @@ export const TRANSLATION_SERVICES = {
  */
 export const OPENROUTER_CONFIG = {
   API_URL: 'https://openrouter.ai/api/v1/chat/completions',
-  DEFAULT_MODEL: 'google/gemini-3.1-flash-lite',
+  DEFAULT_MODEL: 'z-ai/glm-5.3-flash',
 };
 
 // ========== 錯誤代碼 ==========
@@ -266,12 +266,14 @@ export const THEMES = {
  * OpenRouter 免費模型列表
  */
 export const FREE_MODELS = [
-   'nvidia/nemotron-3-super-120b-a12b:free',
-   'google/gemma-4-26b-a4b-it:free',
-   'google/gemma-4-31b-it:free',
-   'z-ai/glm-4.5-air:free',
-   'openai/gpt-oss-120b:free',
-   'qwen/qwen3-coder:free'
+   'minimax/minimax-m3:free',
+   'nvidia/nemotron-3-ultra-550b-a55b:free',
+   'z-ai/glm-5.2:free',
+   'thinkingmachines/inkling:free',
+   'thinkingmachines/inkling-small:free',
+   'nvidia/nemotron-3.5-lightning:free',
+   'minimax/minimax-m2.7:free',
+   'nvidia/nemotron-3-super-120b-a12b:free'
 ];
 
 // ========== 模型分類 ==========

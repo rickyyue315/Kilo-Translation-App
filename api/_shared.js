@@ -82,12 +82,14 @@ export const languageMap = {
 };
 
 export const freeModels = [
+  'minimax/minimax-m3:free',
+  'nvidia/nemotron-3-ultra-550b-a55b:free',
+  'z-ai/glm-5.2:free',
+  'thinkingmachines/inkling:free',
+  'thinkingmachines/inkling-small:free',
+  'nvidia/nemotron-3.5-lightning:free',
+  'minimax/minimax-m2.7:free',
   'nvidia/nemotron-3-super-120b-a12b:free',
-  'google/gemma-4-26b-a4b-it:free',
-  'google/gemma-4-31b-it:free',
-  'z-ai/glm-4.5-air:free',
-  'openai/gpt-oss-120b:free',
-  'qwen/qwen3-coder:free',
 ];
 
 export const translationStylePrompts = {
@@ -195,7 +197,7 @@ export function appOrigin(referer) {
 export async function translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style = 'normal') {
   const API_KEY = process.env.OPENROUTER_API_KEY;
   if (!API_KEY) return { error: 'OpenRouter API key not configured on server', status: 500 };
-  const selectedModel = model || 'nvidia/nemotron-3-super-120b-a12b:free';
+  const selectedModel = model || 'minimax/minimax-m3:free';
   if (!freeModels.includes(selectedModel)) {
     return {
       error: '伺服器 API 金鑰只支援免費模型。請選擇免費選項中的模型，或切換到使用自己的 API 金鑰以存取所有模型。',

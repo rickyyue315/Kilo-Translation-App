@@ -20,7 +20,7 @@ export const TRANSLATION_SERVICE_CONFIG = {
         name: 'OpenRouter API',
         description: 'High-quality AI translation service',
         apiUrl: OPENROUTER_CONFIG.API_URL,
-        defaultModel: 'google/gemini-3.1-flash-lite',
+        defaultModel: 'z-ai/glm-5.3-flash',
         timeout: 35000,
         retryAttempts: 3,
         retryDelay: 1000
@@ -42,7 +42,7 @@ export const OPENROUTER_EXTENDED_CONFIG = {
     
     // Model Configuration
     models: {
-        default: 'google/gemini-3.1-flash-lite',
+        default: 'z-ai/glm-5.3-flash',
         freeOnly: false
     },
     

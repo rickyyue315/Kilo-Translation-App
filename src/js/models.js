@@ -18,91 +18,103 @@ export const languageMap = {
     'vi-VN': 'Tiếng Việt'
 };
 
-// OpenRouter 2025 推薦 AI 模型清單
+// OpenRouter 2026-09 推薦 AI 模型清單
+// 免費：Input Price $0、近 180 日發布、週榜流量優先，最多 10 個（此處 8 個通用型）
+// 收費：Input Price ≤ $1/M，已排除 OpenAI / Google / Anthropic（地區限制）
 export const aiModels = {
-    // 頂級模型
-    "openai/gpt-5.4-mini": {
-        name: "OpenAI GPT-5.4 Mini",
-        description: "高品質主力模型，適合日常與專業翻譯",
+    // 頂級模型（收費，Input ≤ $1/M，週榜高流量）
+    "tencent/hy4-preview": {
+        name: "Tencent Hy4 Preview",
+        description: "週榜第 1（14.1T tokens），旗艦推理模型，翻譯品質最佳",
         category: "頂級模型"
     },
-    "google/gemini-3.5-flash": {
-        name: "Google Gemini 3.5 Flash",
-        description: "最新旗艦模型，高速高品質翻譯",
-        category: "頂級模型"
-    },
-    "z-ai/glm-5.1": {
-        name: "智譜 GLM-5.1",
-        description: "新一代中文能力模型，適合中英翻譯",
-        category: "頂級模型"
-    },
-    "qwen/qwen3.7-plus": {
-        name: "Qwen 3.7 Plus",
-        description: "最新多語言模型，翻譯表現優異且價格實惠",
+    "tencent/hy3": {
+        name: "Tencent Hy3",
+        description: "週榜高流量（4.44T），295B MoE 推理模型，中英翻譯穩健",
         category: "頂級模型"
     },
     "xiaomi/mimo-v2.5": {
         name: "Xiaomi MiMo V2.5",
-        description: "新一代輕量模型，性價比出色",
+        description: "週榜前十，原生多模態，Pro 級代理效能僅半價成本",
+        category: "頂級模型"
+    },
+    "qwen/qwen3.8-flash": {
+        name: "Qwen 3.8 Flash",
+        description: "最新多模態推理，文件與圖表理解強，適合長文翻譯",
+        category: "頂級模型"
+    },
+    "minimax/minimax-m3": {
+        name: "MiniMax M3",
+        description: "1M 上下文多模態基礎模型，長文翻譯穩定",
         category: "頂級模型"
     },
 
-    // 高性價比模型
-    "google/gemini-3.1-flash-lite": {
-        name: "Google Gemini 3.1 Flash Lite",
-        description: "超低價格輕量模型，適合大量翻譯任務",
+    // 高性價比模型（收費，Input ≤ $0.1/M）
+    "z-ai/glm-5.3-flash": {
+        name: "智譜 GLM 5.3 Flash",
+        description: "週榜第 2（12.5T），$0.075/M 超低價，中英翻譯首選",
         category: "高性價比"
     },
-    "openai/gpt-5.4-nano": {
-        name: "OpenAI GPT-5.4 Nano",
-        description: "超輕量級模型，回應極快",
-        category: "高性價比"
-    },
-    "qwen/qwen3.6-flash": {
-        name: "Qwen 3.6 Flash",
-        description: "最新快速模型，極致性價比選擇",
+    "deepseek/deepseek-v4-flash-0731": {
+        name: "DeepSeek V4 Flash 0731",
+        description: "週榜第 3（12.3T），重訓優化版，極速低價",
         category: "高性價比"
     },
     "deepseek/deepseek-v4-flash": {
         name: "DeepSeek V4 Flash",
-        description: "高性價比模型，翻譯品質穩定",
+        description: "週榜常駐高流量，284B MoE，穩定高效",
         category: "高性價比"
     },
-    "x-ai/grok-4.3": {
-        name: "X-AI Grok 4.3",
-        description: "新一代高效模型，即時翻譯流暢",
+    "qwen/qwen3.7-flash": {
+        name: "Qwen 3.7 Flash",
+        description: "$0.03/M 極低價，多語言推理，適合大量翻譯任務",
+        category: "高性價比"
+    },
+    "tencent/hy-mt2-30b-a3b": {
+        name: "Tencent Hy-MT2 30B",
+        description: "旗艦翻譯專用模型，33 語言對，術語表與風格引導",
         category: "高性價比"
     },
 
     // 免費選項
-    "google/gemma-4-26b-a4b-it:free": {
-        name: "Google Gemma 4 26B A4B",
-        description: "免費大型模型，適合一般翻譯",
+    "minimax/minimax-m3:free": {
+        name: "MiniMax M3",
+        description: "免費流量王，週榜第 5（5.56T），1M 上下文",
         category: "免費選項"
     },
-    "google/gemma-4-31b-it:free": {
-        name: "Google Gemma 4 31B",
-        description: "免費高容量模型，表現更穩定",
+    "nvidia/nemotron-3-ultra-550b-a55b:free": {
+        name: "NVIDIA Nemotron 3 Ultra",
+        description: "週榜第 8（3.65T），550B 旗艦推理免費版",
+        category: "免費選項"
+    },
+    "z-ai/glm-5.2:free": {
+        name: "智譜 GLM 5.2",
+        description: "免費推理模型，適合中英互譯",
+        category: "免費選項"
+    },
+    "thinkingmachines/inkling:free": {
+        name: "Inkling",
+        description: "免費旗艦通用推理，1M 上下文，理解能力強",
+        category: "免費選項"
+    },
+    "thinkingmachines/inkling-small:free": {
+        name: "Inkling Small",
+        description: "免費輕量高效版，回應快，適合即時翻譯",
+        category: "免費選項"
+    },
+    "nvidia/nemotron-3.5-lightning:free": {
+        name: "NVIDIA Nemotron 3.5 Lightning",
+        description: "免費高吞吐極速模型，適合即時翻譯",
+        category: "免費選項"
+    },
+    "minimax/minimax-m2.7:free": {
+        name: "MiniMax M2.7",
+        description: "免費通用模型，自主任務與多代理能力佳",
         category: "免費選項"
     },
     "nvidia/nemotron-3-super-120b-a12b:free": {
         name: "NVIDIA Nemotron 3 Super 120B",
         description: "免費大型模型，推理與理解能力強",
-        category: "免費選項"
-    },
-    "z-ai/glm-4.5-air:free": {
-        name: "智譜 GLM-4.5 Air",
-        description: "免費中文模型，適合中英互譯",
-        category: "免費選項"
-    },
-    "openai/gpt-oss-120b:free": {
-        name: "OpenAI GPT-OSS 120B",
-        description: "免費開源模型，綜合能力佳",
-        category: "免費選項"
-    },
-    "qwen/qwen3-coder:free": {
-        name: "Qwen3 Coder",
-        description: "免費模型，技術內容翻譯有優勢",
         category: "免費選項"
     }
 };
@@ -110,37 +122,41 @@ export const aiModels = {
 // 模型分類
 export const modelCategories = {
     "頂級模型": [
-        "openai/gpt-5.4-mini",
-        "google/gemini-3.5-flash",
-        "z-ai/glm-5.1",
-        "qwen/qwen3.7-plus",
-        "xiaomi/mimo-v2.5"
+        "tencent/hy4-preview",
+        "tencent/hy3",
+        "xiaomi/mimo-v2.5",
+        "qwen/qwen3.8-flash",
+        "minimax/minimax-m3"
     ],
     "高性價比": [
-        "google/gemini-3.1-flash-lite",
-        "openai/gpt-5.4-nano",
-        "qwen/qwen3.6-flash",
+        "z-ai/glm-5.3-flash",
+        "deepseek/deepseek-v4-flash-0731",
         "deepseek/deepseek-v4-flash",
-        "x-ai/grok-4.3"
+        "qwen/qwen3.7-flash",
+        "tencent/hy-mt2-30b-a3b"
     ],
     "免費選項": [
-        "nvidia/nemotron-3-super-120b-a12b:free",
-        "google/gemma-4-26b-a4b-it:free",
-        "google/gemma-4-31b-it:free",
-        "z-ai/glm-4.5-air:free",
-        "openai/gpt-oss-120b:free",
-        "qwen/qwen3-coder:free"
+        "minimax/minimax-m3:free",
+        "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "z-ai/glm-5.2:free",
+        "thinkingmachines/inkling:free",
+        "thinkingmachines/inkling-small:free",
+        "nvidia/nemotron-3.5-lightning:free",
+        "minimax/minimax-m2.7:free",
+        "nvidia/nemotron-3-super-120b-a12b:free"
     ]
 };
 
 // 免費模型列表（伺服器 API 金鑰限定使用）
 export const freeModelsOnly = [
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "google/gemma-4-26b-a4b-it:free",
-    "google/gemma-4-31b-it:free",
-    "z-ai/glm-4.5-air:free",
-    "openai/gpt-oss-120b:free",
-    "qwen/qwen3-coder:free"
+    "minimax/minimax-m3:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "z-ai/glm-5.2:free",
+    "thinkingmachines/inkling:free",
+    "thinkingmachines/inkling-small:free",
+    "nvidia/nemotron-3.5-lightning:free",
+    "minimax/minimax-m2.7:free",
+    "nvidia/nemotron-3-super-120b-a12b:free"
 ];
 
 // ============================================================
@@ -218,26 +234,28 @@ export function filterModelsForServerAPI({ aiModel, modelDescription, translatio
 function getOpenRouterOptionsHTML() {
     return `
         <optgroup label="高性價比模型">
-            <option value="google/gemini-3.1-flash-lite" selected>Google Gemini 3.1 Flash Lite (超低價格輕量模型)</option>
-            <option value="openai/gpt-5.4-nano">OpenAI GPT-5.4 Nano (超輕量級模型)</option>
-            <option value="qwen/qwen3.6-flash">Qwen 3.6 Flash (最新快速模型)</option>
-            <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash (最新高效模型)</option>
-            <option value="x-ai/grok-4.3">X-AI Grok 4.3 (新一代高效模型)</option>
+            <option value="z-ai/glm-5.3-flash" selected>智譜 GLM 5.3 Flash (週榜第 2，超低價)</option>
+            <option value="deepseek/deepseek-v4-flash-0731">DeepSeek V4 Flash 0731 (週榜第 3)</option>
+            <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash (穩定高效)</option>
+            <option value="qwen/qwen3.7-flash">Qwen 3.7 Flash ($0.03/M 極低價)</option>
+            <option value="tencent/hy-mt2-30b-a3b">Tencent Hy-MT2 30B (翻譯專用)</option>
         </optgroup>
         <optgroup label="頂級模型">
-            <option value="openai/gpt-5.4-mini">OpenAI GPT-5.4 Mini (高品質主力模型)</option>
-            <option value="google/gemini-3.5-flash">Google Gemini 3.5 Flash (最新旗艦模型)</option>
-            <option value="z-ai/glm-5.1">智譜 GLM-5.1 (新一代中文能力模型)</option>
-            <option value="qwen/qwen3.7-plus">Qwen 3.7 Plus (最新多語言模型)</option>
-            <option value="xiaomi/mimo-v2.5">Xiaomi MiMo V2.5 (新一代輕量模型)</option>
+            <option value="tencent/hy4-preview">Tencent Hy4 Preview (週榜第 1)</option>
+            <option value="tencent/hy3">Tencent Hy3 (高流量推理)</option>
+            <option value="xiaomi/mimo-v2.5">Xiaomi MiMo V2.5 (多模態旗艦)</option>
+            <option value="qwen/qwen3.8-flash">Qwen 3.8 Flash (最新多模態)</option>
+            <option value="minimax/minimax-m3">MiniMax M3 (1M 上下文)</option>
         </optgroup>
         <optgroup label="免費選項">
+            <option value="minimax/minimax-m3:free">MiniMax M3 (免費流量王)</option>
+            <option value="nvidia/nemotron-3-ultra-550b-a55b:free">NVIDIA Nemotron 3 Ultra (免費旗艦推理)</option>
+            <option value="z-ai/glm-5.2:free">智譜 GLM 5.2 (免費中文模型)</option>
+            <option value="thinkingmachines/inkling:free">Inkling (免費通用推理)</option>
+            <option value="thinkingmachines/inkling-small:free">Inkling Small (免費輕量高效)</option>
+            <option value="nvidia/nemotron-3.5-lightning:free">NVIDIA Nemotron 3.5 Lightning (免費極速)</option>
+            <option value="minimax/minimax-m2.7:free">MiniMax M2.7 (免費通用模型)</option>
             <option value="nvidia/nemotron-3-super-120b-a12b:free">NVIDIA Nemotron 3 Super 120B (免費大型模型)</option>
-            <option value="google/gemma-4-26b-a4b-it:free">Google Gemma 4 26B A4B (免費大型模型)</option>
-            <option value="google/gemma-4-31b-it:free">Google Gemma 4 31B (免費高容量模型)</option>
-            <option value="z-ai/glm-4.5-air:free">智譜 GLM-4.5 Air (免費中文模型)</option>
-            <option value="openai/gpt-oss-120b:free">OpenAI GPT-OSS 120B (免費開源模型)</option>
-            <option value="qwen/qwen3-coder:free">Qwen3 Coder (免費技術內容模型)</option>
         </optgroup>
         <optgroup label="自定義模型">
             <option value="custom">自定義模型...</option>
@@ -264,7 +282,7 @@ export function showOpenRouterModels({ aiModel, modelDescription, customModelCon
     if (aiModel.querySelector(`option[value="${currentValue}"]`)) {
         aiModel.value = currentValue;
     } else {
-        aiModel.value = 'google/gemini-3.1-flash-lite';
+        aiModel.value = 'z-ai/glm-5.3-flash';
     }
 
     updateModelDescription(aiModel.value, { modelDescription, translations });
@@ -300,7 +318,7 @@ export function showAllModels({ aiModel, modelDescription, customModelContainer,
     if (aiModel.querySelector(`option[value="${currentValue}"]`)) {
         aiModel.value = currentValue;
     } else {
-        aiModel.value = 'google/gemini-3.1-flash-lite';
+        aiModel.value = 'z-ai/glm-5.3-flash';
     }
 
     updateModelDescription(aiModel.value, { modelDescription, translations });
