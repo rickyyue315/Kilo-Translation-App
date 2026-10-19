@@ -151,7 +151,7 @@
 
 #### 🆓 免費（伺服器金鑰預設可用）
 
-Nemotron 3 Ultra 550B、星辰 Xing4.0 29B、Gemma 4 31B、Nemotron 3 Super 120B。智力指數 12–23，明顯低於付費層，適合零成本備援。Inkling 系列雖然標示免費，但只限 OpenRouter 認可的 agent 工具調用，一般應用會收到 403，故未列入。
+Nemotron 3 Ultra 550B、Nemotron 3.5 Super VL、Gemma 4 26B、Nemotron 3 Super 120B、Dots3 Note。智力指數 13–27，明顯低於付費層。免費層供應不穩（同一個模型可能今天 2 秒回應、明天直接 429），因此順序按實測穩定度排列，失敗會自動切換下一個。Inkling 系列雖然標示免費，但只限 OpenRouter 認可的 agent 工具調用，一般應用會收到 403，故未列入。
 
 > 伺服器 API 金鑰預設**只能**使用免費模型。設定環境變數 `ALLOW_PAID_MODELS=1` 後，會額外開放 GLM 5.3 Flash、Hy-MT2 30B、GLM 5.3 三個精選付費模型（前端會透過 `/api/health` 自動同步這份清單）。使用自己的 API 金鑰時，全部模型可用。
 

@@ -112,36 +112,20 @@ export const MODEL_CATALOG = {
   },
 
   // ── 免費：零成本備援，品質明顯低於付費層 ──────────────────
-  // 注意：thinkingmachines/inkling 與 inkling-small 雖然在目錄中標示為 free，
+  // 注意：thinkingmachines/inkling 系列與 google/gemma-4-31b-it 雖然標示 free，
   // 但實際調用會回 403「only available on agentic harnesses」，一般應用無法使用，
   // 2026-10-19 實測後移除，勿再加回。
   'nvidia/nemotron-3-ultra-550b-a55b:free': {
     name: 'NVIDIA Nemotron 3 Ultra',
     tier: 'free',
-    note: '免費，智力 22.9，550B MoE；實測可用，免費層首選',
+    note: '免費，智力 22.9，550B MoE；實測最穩，免費層首選',
     input: 0,
     output: 0,
     context: 1000000,
     iq: 22.9,
   },
-  'xingchen-agi/xing4.0-29b-a4b:free': {
-    name: '星辰 Xing4.0 29B',
-    tier: 'free',
-    note: '免費，2026-10 最新，中國電信 TeleAI 中文優化；實測可用',
-    input: 0,
-    output: 0,
-    context: 262144,
-    iq: null,
-  },
-  'google/gemma-4-31b-it:free': {
-    name: 'Gemma 4 31B Instruct',
-    tier: 'free',
-    note: '免費，256K 上下文，通用指令遵循；備援',
-    input: 0,
-    output: 0,
-    context: 262144,
-    iq: 14.7,
-  },
+
+
   'nvidia/nemotron-3-super-120b-a12b:free': {
     name: 'NVIDIA Nemotron 3 Super 120B',
     tier: 'free',
@@ -151,6 +135,34 @@ export const MODEL_CATALOG = {
     context: 262144,
     iq: 12.8,
   },
+  'google/gemma-4-26b-a4b-it:free': {
+    name: 'Gemma 4 26B A4B',
+    tier: 'free',
+    note: '免費，262K 上下文，智力 16.7；回應最快（約 2 秒）但供應不穩，列備援',
+    input: 0,
+    output: 0,
+    context: 262144,
+    iq: 16.7,
+  },
+  'nvidia/nemotron-3.5-super-vl:free': {
+    name: 'NVIDIA Nemotron 3.5 Super VL',
+    tier: 'free',
+    note: '免費，智力 26.5，1M 上下文，2026-10 最新；實測可用',
+    input: 0,
+    output: 0,
+    context: 1000000,
+    iq: 26.5,
+  },
+  'dots-studio/dots-3-note-preview:free': {
+    name: 'Dots3 Note Preview',
+    tier: 'free',
+    note: '免費，512K 上下文，280B MoE',
+    input: 0,
+    output: 0,
+    context: 512000,
+    iq: null,
+  },
+
 };
 
 /** Display order = fallback order for the server key. */
@@ -158,10 +170,11 @@ export const MODEL_ORDER = {
   value: ['z-ai/glm-5.3-flash', 'xiaomi/mimo-v2.6-flash', 'tencent/hy-mt2-30b-a3b', 'deepseek/deepseek-v4-flash-0731', 'qwen/qwen3.7-flash'],
   top: ['z-ai/glm-5.3', 'xiaomi/mimo-v2.6-pro', 'tencent/hy4-preview', 'tencent/hy3', 'qwen/qwen3.8-flash'],
   free: [
-    'google/gemma-4-31b-it:free',
-    'nvidia/nemotron-3-super-120b-a12b:free',
     'nvidia/nemotron-3-ultra-550b-a55b:free',
-    'xingchen-agi/xing4.0-29b-a4b:free',
+    'nvidia/nemotron-3.5-super-vl:free',
+    'google/gemma-4-26b-a4b-it:free',
+    'nvidia/nemotron-3-super-120b-a12b:free',
+    'dots-studio/dots-3-note-preview:free',
   ],
 };
 
