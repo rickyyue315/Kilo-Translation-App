@@ -4,36 +4,13 @@
 // backend (/api/transcribe, Zeabur) and falls back to direct OpenRouter calls
 // when the user supplies their own API key.
 //
-// Supported models (https://openrouter.ai/):
-//   mistralai/voxtral-mini-transcribe
-//   microsoft/mai-transcribe-2
-//   qwen/qwen3-asr-1.7b
-//   nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b
+// The model list and prices live in src/js/modelCatalog.js — one source of truth
+// shared with the backend. Re-verify with: npm run check:models
 
-export const OPENROUTER_ASR_MODELS = {
-  'mistralai/voxtral-mini-transcribe': {
-    name: 'Voxtral Mini Transcribe',
-    vendor: 'Mistral',
-    description: 'Mistral 輕量語音轉文字，適合會議/語音筆記/播客',
-  },
-  'microsoft/mai-transcribe-2': {
-    name: 'MAI-Transcribe 2',
-    vendor: 'Microsoft',
-    description: '微軟多語言語音轉文字，FLEURS 多語言基準領先',
-  },
-  'qwen/qwen3-asr-1.7b': {
-    name: 'Qwen3 ASR 1.7B',
-    vendor: 'Qwen',
-    description: 'Qwen 多語言 ASR，支援語種識別與時間戳',
-  },
-  'nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b': {
-    name: 'Nemotron 3.5 ASR Streaming 0.6B',
-    vendor: 'NVIDIA',
-    description: 'NVIDIA 低延遲串流 ASR，40+ 語言即時字幕/語音代理',
-  },
-};
+import { ASR_MODELS, DEFAULT_ASR_MODEL as CATALOG_DEFAULT_ASR_MODEL } from './modelCatalog.js';
 
-export const DEFAULT_ASR_MODEL = 'mistralai/voxtral-mini-transcribe';
+export const OPENROUTER_ASR_MODELS = ASR_MODELS;
+export const DEFAULT_ASR_MODEL = CATALOG_DEFAULT_ASR_MODEL;
 export const ASR_MODEL_STORAGE_KEY = 'openrouter_asr_model';
 export const ASR_MODEL_LEGACY_KEY = 'selected_asr_model';
 

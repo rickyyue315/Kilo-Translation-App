@@ -344,6 +344,20 @@ export function setupEventListeners(elements, callbacks = {}) {
         });
     });
 
+    // Translation depth chips (fast / three-pass)
+    const depthRadios = document.querySelectorAll('input[name="translationDepth"]');
+    depthRadios.forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.checked) {
+                try {
+                    localStorage.setItem('translation_depth', this.value);
+                } catch {
+                    // ignore persistence failures
+                }
+            }
+        });
+    });
+
     // Bypass English intermediate step
     if (elements.bypassEnglishStep) {
         elements.bypassEnglishStep.addEventListener('change', function () {

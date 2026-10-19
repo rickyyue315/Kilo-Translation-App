@@ -4,6 +4,9 @@ import { i18n } from './i18n.js';
 import { languageMap } from './models.js';
 import { needsEnglishTranslation } from './utils.js';
 import { playTranslation } from './speech.js';
+import { STAGE, buildFastMessages, buildMessages } from './prompts.js';
+import { DEPTH, PIPELINE_PHASES, runThreePassPipeline, shouldUseDeepPipeline } from './pipeline.js';
+import { clearPipelineSteps, describePhase, renderPipelineProgress, renderPipelineSteps } from './pipelineView.js';
 import {
     addVoiceChatTurn,
     getDualContextWindow,
@@ -18,6 +21,9 @@ import {
 // ========== Module State ==========
 
 let currentTranslation = '';
+let lastPipelineRun = null;
+
+const DEPTH_STORAGE_KEY = 'translation_depth';
 
 export function getCurrentTranslation() {
     return currentTranslation;
@@ -25,6 +31,30 @@ export function getCurrentTranslation() {
 
 export function setCurrentTranslation(value) {
     currentTranslation = value;
+}
+
+/** The most recent three-pass run, for the "步驟" panel and for debugging. */
+export function getLastPipelineRun() {
+    return lastPipelineRun;
+}
+
+export function clearLastPipelineRun() {
+    lastPipelineRun = null;
+}
+
+/** Current translation depth: 'fast' (single call) or 'deep' (literal → critique → rewrite). */
+export function getTranslationDepth() {
+    const fromDom = document.querySelector('input[name="translationDepth"]:checked')?.value;
+    if (fromDom) return fromDom;
+    try {
+        return localStorage.getItem(DEPTH_STORAGE_KEY) === DEPTH.DEEP ? DEPTH.DEEP : DEPTH.FAST;
+    } catch {
+        return DEPTH.FAST;
+    }
+}
+
+export function getTranslationStyle() {
+    return document.querySelector('input[name="translationStyle"]:checked')?.value || 'normal';
 }
 
 // ========== Extra Target Language Helpers ==========
@@ -51,7 +81,8 @@ const translationStylePrompts = {
     'natural': '翻譯風格要求：讓文句更自然流暢。',
     'formal': '翻譯風格要求：採用正式的商務用語。',
     'simple': '翻譯風格要求：風格要淺白，像在跟小朋友解釋一樣。',
-    'academic': '翻譯風格要求：風格要適合學術人士，使用專業術語。'
+    'academic': '翻譯風格要求：風格要適合學術人士，使用專業術語。',
+    'technical': '翻譯風格要求：適合技術文件。主動語態、術語一致，程式碼識別碼與指令旗標保持原樣，單位與貨幣必要時雙標註。'
 };
 
 /**
@@ -452,6 +483,158 @@ export async function performTranslation(text, sourceLang, targetLang, elements,
     }
 }
 
+// ========== Three-pass (deep) translation ==========
+
+const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+function stageBudget(stage) {
+    if (stage === STAGE.REWRITE) return { temperature: 0.4, maxTokens: 4000 };
+    if (stage === STAGE.DRAFT) return { temperature: 0.2, maxTokens: 2600 };
+    return { temperature: 0.3, maxTokens: 2000 };
+}
+
+async function callStageWithServerKey(payload, { selectedModel, signal }) {
+    const response = await postTranslate({
+        text: payload.text,
+        sourceLang: payload.sourceLang,
+        targetLang: payload.targetLang,
+        model: selectedModel,
+        stream: false,
+        style: payload.style,
+        stage: payload.stage,
+        draft: payload.draft || '',
+        critique: payload.critique || '',
+        prevContext: payload.prevContext || '',
+        glossary: payload.glossary || null,
+        interfaceLanguage: payload.interfaceLanguage || 'en-US'
+    }, signal);
+
+    if (!response.ok) {
+        let message = `翻譯服務請求失敗: ${response.status}`;
+        try {
+            const errorData = await response.json();
+            message += ` - ${errorData.error || response.statusText}`;
+        } catch {
+            message += ` - ${response.statusText}`;
+        }
+        throw new Error(message);
+    }
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('伺服器返回的數據格式錯誤');
+    return content;
+}
+
+async function callStageWithClientKey(payload, { selectedModel, apiKey, signal }) {
+    const budget = stageBudget(payload.stage);
+    const response = await fetch(OPENROUTER_CHAT_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'Kilo Translation App'
+        },
+        body: JSON.stringify({
+            model: selectedModel,
+            messages: buildMessages(payload),
+            temperature: budget.temperature,
+            max_tokens: budget.maxTokens,
+            stream: false
+        }),
+        signal
+    });
+
+    if (!response.ok) {
+        let message = `OpenRouter API 請求失敗: ${response.status}`;
+        try {
+            const errorData = await response.json();
+            message += ` - ${errorData.error?.message || response.statusText}`;
+        } catch {
+            message += ` - ${response.statusText}`;
+        }
+        throw new Error(message);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('伺服器返回的數據格式錯誤');
+    return content;
+}
+
+/**
+ * 三步翻譯：直譯 → 反思 → 意譯。
+ * 長文會按段落/句子切成區塊逐段處理，保留術語與語氣連貫。
+ *
+ * @param {string} text
+ * @param {string} sourceLang
+ * @param {string} targetLang
+ * @param {object} elements
+ * @param {object} options - { interfaceLanguage, onProgress }
+ * @returns {Promise<{ finalText: string, chunks: Array, calls: number, degraded: boolean }>}
+ */
+export async function translateDeep(text, sourceLang, targetLang, elements, options = {}) {
+    const { interfaceLanguage = 'en-US', onProgress = null, initialContext = '' } = options;
+    const translations = i18n[interfaceLanguage] || i18n['en-US'] || {};
+    const style = getTranslationStyle();
+    const useServerApiKey = Boolean(elements.serverApiKey?.checked);
+
+    let selectedModel = elements.aiModel.value;
+    if (selectedModel === 'custom') {
+        selectedModel = elements.customModelInput.value.trim();
+        if (!selectedModel) {
+            throw new Error(translations.enterCustomModelId || '請輸入自定義模型 ID');
+        }
+    }
+
+    const apiKey = useServerApiKey ? null : (elements.apiKey?.value || '').trim();
+    if (!useServerApiKey && !apiKey) {
+        throw new Error(translations.enterApiKey || '請輸入 OpenRouter API 金鑰');
+    }
+
+    const controller = new AbortController();
+    // 三步 + 分段可能跑上好幾分鐘，超時只在整個流程結束後才清除
+    const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+    try {
+        const callStage = useServerApiKey
+            ? (payload) => callStageWithServerKey(payload, { selectedModel, signal: controller.signal })
+            : (payload) => callStageWithClientKey(payload, { selectedModel, apiKey, signal: controller.signal });
+
+        const run = await runThreePassPipeline({
+            text,
+            sourceLang,
+            targetLang,
+            style,
+            interfaceLanguage,
+            callStage,
+            onProgress,
+            signal: controller.signal,
+            initialContext,
+        });
+
+        lastPipelineRun = {
+            ...run,
+            sourceLang,
+            targetLang,
+            style,
+            interfaceLanguage,
+            at: Date.now(),
+        };
+        return lastPipelineRun;
+    } catch (error) {
+        if (error?.name === 'AbortError') {
+            throw new Error(translations.requestTimeout || '請求超時，請檢查網路連線');
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
 // ========== Direct API Translation Functions (return text) ==========
 
 /**
@@ -529,19 +712,10 @@ export async function translateWithClientAPIDirect(text, sourceLang, targetLang,
         throw new Error(translations.enterApiKey || '請輸入 OpenRouter API 金鑰');
     }
 
+    const [systemMessage, userMessage] = buildFastMessages({ text, sourceLang, targetLang, style });
     const requestBody = {
         model: selectedModel,
-        messages: [
-            {
-                role: 'system',
-                content: getTranslationSystemPrompt(targetLang, sourceLang, style, interfaceLanguage)
-            },
-            ...buildHistoryMessages(history),
-            {
-                role: 'user',
-                content: text
-            }
-        ],
+        messages: [systemMessage, ...buildHistoryMessages(history), userMessage],
         temperature: 0.3,
         max_tokens: 2000,
         stream: false
@@ -731,18 +905,10 @@ export async function translateWithClientAPI(text, sourceLang, targetLang, eleme
     }
 
     // 構建 OpenRouter API 請求
+    const [systemMessage, userMessage] = buildFastMessages({ text, sourceLang, targetLang, style });
     const requestBody = {
         model: selectedModel,
-        messages: [
-            {
-                role: 'system',
-                content: getTranslationSystemPrompt(targetLang, sourceLang, style, interfaceLanguage)
-            },
-            {
-                role: 'user',
-                content: text
-            }
-        ],
+        messages: [systemMessage, userMessage],
         temperature: 0.3,
         max_tokens: 2000,
         stream: isStreamMode
@@ -881,8 +1047,10 @@ export async function translateTextInDualMode(text, elements, state = {}) {
         return;
     }
 
-    if (text.length > 5000) {
-        if (showError) showError(translations.textTooLong || '文字過長，請分段輸入（建議不超過 5000 字元）');
+    const deepMode = getTranslationDepth() === DEPTH.DEEP;
+    const charLimit = deepMode ? 20000 : 5000;
+    if (text.length > charLimit) {
+        if (showError) showError((deepMode ? translations.textTooLongDeep : translations.textTooLong) || '文字過長，請分段輸入');
         return;
     }
 
@@ -905,8 +1073,23 @@ export async function translateTextInDualMode(text, elements, state = {}) {
         let finalTranslation;
 
         const bypassEnglish = localStorage.getItem('bypass_english_step') === 'true';
+        const useDeep = shouldUseDeepPipeline(text, getTranslationDepth());
 
-        if (!bypassEnglish && needsEnglishTranslation(sourceLang, targetLang)) {
+        if (useDeep) {
+            // 三步精譯：直接處理原文，語氣與上一輪保持一致
+            const previous = Array.isArray(conversationHistory) && conversationHistory.length > 0
+                ? conversationHistory[conversationHistory.length - 1].targetText
+                : '';
+            const run = await translateDeep(text, sourceLang, targetLang, elements, {
+                interfaceLanguage,
+                initialContext: previous || '',
+                onProgress: (info) => {
+                    if (updateStatus) updateStatus('translating', describePhase(info, translations));
+                }
+            });
+            finalTranslation = run.finalText;
+            elements.englishText.textContent = translations.deepModeNoPivot || '三步精譯：直接由原文生成，無需英語中轉';
+        } else if (!bypassEnglish && needsEnglishTranslation(sourceLang, targetLang)) {
             // 雙步驟翻譯：來源 → 英語 → 目標
             elements.englishText.textContent = translations.translating || '翻譯中...';
 
@@ -1003,8 +1186,10 @@ export async function translateText(text, elements, state = {}) {
         return;
     }
 
-    if (text.length > 5000) {
-        if (showError) showError(translations.textTooLong || '文字過長，請分段輸入（建議不超過 5000 字元）');
+    const deepMode = getTranslationDepth() === DEPTH.DEEP;
+    const charLimit = deepMode ? 20000 : 5000;
+    if (text.length > charLimit) {
+        if (showError) showError((deepMode ? translations.textTooLongDeep : translations.textTooLong) || '文字過長，請分段輸入');
         return;
     }
 
@@ -1024,10 +1209,25 @@ export async function translateText(text, elements, state = {}) {
     try {
         let finalTranslation;
         let englishRef = '';
+        let deepRun = null;
 
         const bypassEnglish = localStorage.getItem('bypass_english_step') === 'true';
+        const useDeep = shouldUseDeepPipeline(text, getTranslationDepth());
 
-        if (!bypassEnglish && needsEnglishTranslation(sourceLang, targetLang)) {
+        if (useDeep) {
+            // 三步精譯：直譯 → 反思 → 意譯。直接處理原文，不經英語中轉。
+            clearPipelineSteps();
+            elements.englishTextSingle.textContent = translations.pipelineRunning || '三步翻譯中...';
+            deepRun = await translateDeep(text, sourceLang, targetLang, elements, {
+                interfaceLanguage,
+                onProgress: (info) => {
+                    renderPipelineProgress(elements, info, translations);
+                    if (updateStatus) updateStatus('translating', describePhase(info, translations));
+                }
+            });
+            finalTranslation = deepRun.finalText;
+            elements.englishTextSingle.textContent = translations.deepModeNoPivot || '三步精譯：直接由原文生成，無需英語中轉';
+        } else if (!bypassEnglish && needsEnglishTranslation(sourceLang, targetLang)) {
             // 雙步驟翻譯：來源 → 英語 → 目標
             elements.englishTextSingle.textContent = translations.translating || '翻譯中...';
 
@@ -1049,6 +1249,12 @@ export async function translateText(text, elements, state = {}) {
         elements.targetText.classList.remove('streaming');
         elements.playTranslation.disabled = false;
         if (updateStatus) updateStatus('ready', translations.translationComplete || '翻譯完成');
+
+        if (deepRun) {
+            renderPipelineSteps(elements, deepRun, translations);
+        } else {
+            clearPipelineSteps();
+        }
 
         // 檢查翻譯結果
         if (finalTranslation.trim().length === 0) {
@@ -1086,7 +1292,7 @@ export async function translateText(text, elements, state = {}) {
                 container.classList.remove('hidden');
 
                 // 決定平行翻譯的輸入：有英文步驟就用英文結果，否則用原文
-                const hasEnglishStep = !bypassEnglish && needsEnglishTranslation(sourceLang, targetLang);
+                const hasEnglishStep = !useDeep && !bypassEnglish && needsEnglishTranslation(sourceLang, targetLang);
                 const extraInput = hasEnglishStep ? englishRef : text;
                 const extraSourceLang = hasEnglishStep ? 'en-US' : sourceLang;
 

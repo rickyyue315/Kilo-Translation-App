@@ -301,4 +301,11 @@ export function loadSavedData(elements, callbacks) {
     if (elements.bypassEnglishStep) {
         elements.bypassEnglishStep.checked = bypassEnglish;
     }
+
+    // 載入翻譯深度（即時 / 三步精譯）
+    const savedDepth = localStorage.getItem('translation_depth') || 'fast';
+    const depthRadio = document.querySelector(`input[name="translationDepth"][value="${savedDepth}"]`);
+    if (depthRadio) {
+        depthRadio.checked = true;
+    }
 }

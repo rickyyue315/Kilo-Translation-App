@@ -18,30 +18,16 @@
  *   nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b
  */
 
-export const ASR_MODELS = {
-  'mistralai/voxtral-mini-transcribe': {
-    name: 'Voxtral Mini Transcribe',
-    vendor: 'Mistral',
-    description: 'Mistral 輕量語音轉文字，適合會議/語音筆記/播客',
-  },
-  'microsoft/mai-transcribe-2': {
-    name: 'MAI-Transcribe 2',
-    vendor: 'Microsoft',
-    description: '微軟多語言語音轉文字，FLEURS 多語言基準領先',
-  },
-  'qwen/qwen3-asr-1.7b': {
-    name: 'Qwen3 ASR 1.7B',
-    vendor: 'Qwen',
-    description: 'Qwen 多語言 ASR，支援語種識別與時間戳',
-  },
-  'nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b': {
-    name: 'Nemotron 3.5 ASR Streaming 0.6B',
-    vendor: 'NVIDIA',
-    description: 'NVIDIA 低延遲串流 ASR，40+ 語言即時字幕/語音代理',
-  },
-};
+import { STAGE, buildFastMessages, buildMessages } from '../src/js/prompts.js';
+import {
+  ASR_MODELS,
+  DEFAULT_ASR_MODEL,
+  FREE_MODELS,
+  SERVER_PAID_MODELS,
+} from '../src/js/modelCatalog.js';
 
-export const DEFAULT_ASR_MODEL = 'mistralai/voxtral-mini-transcribe';
+// Re-exported so existing imports keep working; the catalogue is the source of truth.
+export { ASR_MODELS, DEFAULT_ASR_MODEL };
 
 export const OPENROUTER_ASR_URL = 'https://openrouter.ai/api/v1/audio/transcriptions';
 
@@ -81,16 +67,14 @@ export const languageMap = {
   'ru-RU': 'Русский',
 };
 
-export const freeModels = [
-  'minimax/minimax-m3:free',
-  'nvidia/nemotron-3-ultra-550b-a55b:free',
-  'z-ai/glm-5.2:free',
-  'thinkingmachines/inkling:free',
-  'thinkingmachines/inkling-small:free',
-  'nvidia/nemotron-3.5-lightning:free',
-  'minimax/minimax-m2.7:free',
-  'nvidia/nemotron-3-super-120b-a12b:free',
-];
+// Server-key model policy.
+// Free models only by default; set ALLOW_PAID_MODELS=1 to let the server key
+// spend on the short, curated cheap list in modelCatalog.js.
+export const freeModels = [...FREE_MODELS];
+const PAID_ENABLED = process.env.ALLOW_PAID_MODELS === '1';
+export const allowedServerModels = PAID_ENABLED
+  ? [...FREE_MODELS, ...SERVER_PAID_MODELS]
+  : [...FREE_MODELS];
 
 export const translationStylePrompts = {
   normal: '',
@@ -98,6 +82,7 @@ export const translationStylePrompts = {
   formal: '翻譯風格要求：採用正式的商務用語，使用適當的敬語和專業術語，保持嚴謹的語氣，適合商務場合。',
   simple: '翻譯風格要求：風格要淺白易懂，像在跟小朋友解釋一樣，使用簡單的詞彙和短句，避免複雜的語法結構，讓任何人都能輕鬆理解。',
   academic: '翻譯風格要求：風格要適合學術人士，使用專業術語和學術表達，保持客觀、嚴謹的語氣，適合學術或專業領域的交流。',
+  technical: '翻譯風格要求：適合技術文件。使用主動語態描述系統行為，術語全篇一致，程式碼識別碼、API 名稱、指令旗標與檔案路徑保持原樣。單位、貨幣與日期需本地化，必要時同時給出兩種數值。不用行銷形容詞與填充過渡詞。',
 };
 
 const rateLimitMap = new Map();
@@ -177,17 +162,70 @@ export function buildHistoryMessages(history) {
   });
 }
 
-export function buildRequestBody(text, sourceLang, targetLang, model, stream, style, history = null) {
+/**
+ * Build the OpenRouter request body.
+ *
+ * @param {string} text
+ * @param {string} sourceLang
+ * @param {string} targetLang
+ * @param {string} model
+ * @param {boolean} stream
+ * @param {string} style        normal | natural | formal | simple | academic | technical
+ * @param {Array|null} history  dual-mode conversation context
+ * @param {object} extra        three-pass pipeline controls:
+ *                              { stage, draft, critique, prevContext, glossary, interfaceLanguage, maxTokens, temperature }
+ */
+export function buildRequestBody(text, sourceLang, targetLang, model, stream, style, history = null, extra = {}) {
+  const {
+    stage = null,
+    draft = '',
+    critique = '',
+    prevContext = '',
+    glossary = null,
+    interfaceLanguage = 'en-US',
+    maxTokens = null,
+    temperature = null,
+  } = extra || {};
+
+  const contextMessages = buildHistoryMessages(history);
+  let systemMessage;
+  let userMessage;
+
+  if (stage) {
+    // Three-pass pipeline: prompt construction lives in src/js/prompts.js so the
+    // browser (user key) and the server (server key) send byte-identical requests.
+    const built = buildMessages({
+      stage,
+      text,
+      draft,
+      critique,
+      sourceLang,
+      targetLang,
+      style,
+      interfaceLanguage,
+      prevContext,
+      glossary,
+    });
+    systemMessage = built[0];
+    userMessage = built[1];
+  } else {
+    // Fast path: one call, the model runs the three passes silently.
+    const built = buildFastMessages({ text, sourceLang, targetLang, style });
+    systemMessage = built[0];
+    userMessage = built[1];
+  }
+
+  const defaultTemperature = stage === STAGE.DRAFT ? 0.2 : stage === STAGE.REWRITE ? 0.4 : 0.3;
+  const defaultMaxTokens = stage === STAGE.REWRITE ? 4000 : stage === STAGE.DRAFT ? 2600 : 2000;
+
   return {
     model,
-    messages: [
-      { role: 'system', content: generateSystemPrompt(sourceLang, targetLang, style, history) },
-      ...buildHistoryMessages(history),
-      { role: 'user', content: text },
-    ],
+    messages: [systemMessage, ...contextMessages, userMessage],
     stream: stream || false,
-    temperature: 0.3,
-    max_tokens: 2000,
+    temperature: typeof temperature === 'number' ? temperature : defaultTemperature,
+    max_tokens: Number.isFinite(maxTokens) && maxTokens > 0
+      ? Math.min(maxTokens, 8000)
+      : defaultMaxTokens,
   };
 }
 
@@ -224,21 +262,25 @@ export function appOrigin(referer) {
   return referer || process.env.APP_URL || 'https://kilo-translator.zeabur.app';
 }
 
-export async function translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style = 'normal', history = null) {
+export async function translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style = 'normal', history = null, extra = {}) {
   const API_KEY = process.env.OPENROUTER_API_KEY;
   if (!API_KEY) return { error: 'OpenRouter API key not configured on server', status: 500 };
-  const selectedModel = model || 'minimax/minimax-m3:free';
-  if (!freeModels.includes(selectedModel)) {
+  const selectedModel = model || FREE_MODELS[0];
+  if (!allowedServerModels.includes(selectedModel)) {
     return {
-      error: '伺服器 API 金鑰只支援免費模型。請選擇免費選項中的模型，或切換到使用自己的 API 金鑰以存取所有模型。',
+      error: PAID_ENABLED
+        ? `伺服器 API 金鑰不支援此模型。可用清單：${allowedServerModels.join(', ')}`
+        : '伺服器 API 金鑰只支援免費模型。請選擇免費選項中的模型，或切換到使用自己的 API 金鑰以存取所有模型。',
       status: 403,
-      allowedModels: freeModels,
+      allowedModels: allowedServerModels,
     };
   }
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  // A rewrite pass over a long chunk legitimately needs more than the chat budget.
+  const timeoutMs = extra?.stage === STAGE.REWRITE ? 45000 : 30000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const modelsToTry = [selectedModel, ...freeModels.filter((m) => m !== selectedModel)];
+    const modelsToTry = [selectedModel, ...allowedServerModels.filter((m) => m !== selectedModel)];
     let lastErrorMessage = '所有可用的免費模型暫時不可用，請稍後再試';
     let lastStatus = 503;
     for (const currentModel of modelsToTry) {
@@ -250,7 +292,7 @@ export async function translateWithOpenRouter(text, sourceLang, targetLang, mode
           'HTTP-Referer': appOrigin(referer),
           'X-Title': 'Kilo Voice Translator',
         },
-        body: JSON.stringify(buildRequestBody(text, sourceLang, targetLang, currentModel, stream, style, history)),
+        body: JSON.stringify(buildRequestBody(text, sourceLang, targetLang, currentModel, stream, style, history, extra)),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -364,11 +406,14 @@ export function handleHealth(_req, res) {
     service: 'kilo-voice-translator',
     time: new Date().toISOString(),
     asrModels: Object.keys(ASR_MODELS),
+    defaultAsrModel: DEFAULT_ASR_MODEL,
     hasOpenRouterKey: Boolean(process.env.OPENROUTER_API_KEY),
+    paidModelsEnabled: PAID_ENABLED,
+    allowedModels: allowedServerModels,
   });
 }
 
-async function runTranslate({ text, sourceLang, targetLang, model, stream, action, style, history, referer }) {
+async function runTranslate({ text, sourceLang, targetLang, model, stream, action, style, history, referer, stage, draft, critique, prevContext, glossary, interfaceLanguage, maxTokens }) {
   if (action === 'getApiKey') {
     return {
       status: 200,
@@ -380,7 +425,32 @@ async function runTranslate({ text, sourceLang, targetLang, model, stream, actio
   if (!text || !sourceLang || !targetLang) {
     return { status: 400, payload: { error: 'Missing required parameters: text, sourceLang, targetLang' } };
   }
-  const result = await translateWithOpenRouter(text, sourceLang, targetLang, model, stream, referer, style, history);
+  const VALID_STAGES = new Set([STAGE.DRAFT, STAGE.LITERAL, STAGE.CRITIQUE, STAGE.REWRITE]);
+  if (stage && !VALID_STAGES.has(stage)) {
+    return { status: 400, payload: { error: `Unknown translation stage: ${stage}` } };
+  }
+  if (stage === STAGE.REWRITE && !draft) {
+    return { status: 400, payload: { error: 'Rewrite stage requires the literal draft' } };
+  }
+  const result = await translateWithOpenRouter(
+    text,
+    sourceLang,
+    targetLang,
+    model,
+    stream,
+    referer,
+    style,
+    history,
+    {
+      stage: stage || null,
+      draft: typeof draft === 'string' ? draft.slice(0, 12000) : '',
+      critique: typeof critique === 'string' ? critique.slice(0, 4000) : '',
+      prevContext: typeof prevContext === 'string' ? prevContext.slice(-240) : '',
+      glossary: Array.isArray(glossary) ? glossary.slice(0, 40) : null,
+      interfaceLanguage: typeof interfaceLanguage === 'string' ? interfaceLanguage : 'en-US',
+      maxTokens: Number(maxTokens) || null,
+    }
+  );
   if (result.error) return { status: result.status || 500, payload: { error: result.error } };
   if (result.stream) return { status: 200, raw: result.content, contentType: 'text/plain; charset=utf-8' };
   return { status: 200, payload: result.data };

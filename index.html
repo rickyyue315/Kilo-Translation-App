@@ -62,48 +62,22 @@
                 <div class="model-bar-field">
                     <label for="aiModel" class="form-label" data-i18n="aiModelLabel">AI 模型</label>
                     <select id="aiModel" class="form-input model-select">
-                    <optgroup label="高性價比模型">
-                        <option value="z-ai/glm-5.3-flash" selected>智譜 GLM 5.3 Flash</option>
-                        <option value="deepseek/deepseek-v4-flash-0731">DeepSeek V4 Flash 0731</option>
-                        <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash</option>
-                        <option value="qwen/qwen3.7-flash">Qwen 3.7 Flash</option>
-                        <option value="tencent/hy-mt2-30b-a3b">Tencent Hy-MT2 30B</option>
-                    </optgroup>
-                    <optgroup label="頂級模型">
-                        <option value="tencent/hy4-preview">Tencent Hy4 Preview</option>
-                        <option value="tencent/hy3">Tencent Hy3</option>
-                        <option value="xiaomi/mimo-v2.5">Xiaomi MiMo V2.5</option>
-                        <option value="qwen/qwen3.8-flash">Qwen 3.8 Flash</option>
-                        <option value="minimax/minimax-m3">MiniMax M3</option>
-                    </optgroup>
-                    <optgroup label="免費選項">
-                        <option value="minimax/minimax-m3:free">MiniMax M3</option>
-                        <option value="nvidia/nemotron-3-ultra-550b-a55b:free">NVIDIA Nemotron 3 Ultra</option>
-                        <option value="z-ai/glm-5.2:free">智譜 GLM 5.2</option>
-                        <option value="thinkingmachines/inkling:free">Inkling</option>
-                        <option value="thinkingmachines/inkling-small:free">Inkling Small</option>
-                        <option value="nvidia/nemotron-3.5-lightning:free">NVIDIA Nemotron 3.5 Lightning</option>
-                        <option value="minimax/minimax-m2.7:free">MiniMax M2.7</option>
-                        <option value="nvidia/nemotron-3-super-120b-a12b:free">NVIDIA Nemotron 3 Super 120B</option>
-                    </optgroup>
-                    <optgroup label="自定義模型">
-                        <option value="custom">自定義模型...</option>
-                    </optgroup>
+                    <!-- 由 src/js/models.js 於啟動時依 modelCatalog.js 重建 -->
+                    <option value="z-ai/glm-5.3-flash" selected>智譜 GLM 5.3 Flash</option>
+                    <option value="custom">自定義模型...</option>
                 </select>
                 </div>
                 <div class="model-bar-field">
                     <label for="asrModel" class="form-label" data-i18n="asrModelLabel">語音辨識模型</label>
                     <select id="asrModel" class="form-input model-select">
-                        <option value="mistralai/voxtral-mini-transcribe" selected>Voxtral Mini Transcribe (Mistral)</option>
-                        <option value="microsoft/mai-transcribe-2">MAI-Transcribe 2 (Microsoft)</option>
-                        <option value="qwen/qwen3-asr-1.7b">Qwen3 ASR 1.7B</option>
-                        <option value="nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b">Nemotron 3.5 ASR Streaming 0.6B (NVIDIA)</option>
+                        <!-- 由 main.js 於啟動時依 modelCatalog.js 重建 -->
+                        <option value="microsoft/mai-transcribe-2" selected>MAI-Transcribe 2 (Microsoft)</option>
                     </select>
                 </div>
             </div>
             <div class="model-bar-meta">
-                <p class="model-meta" id="modelDescription">智譜 GLM 5.3 Flash：週榜第 2（12.5T），超低價高品質翻譯</p>
-                <p class="model-meta" id="asrModelDescription">Voxtral Mini Transcribe：Mistral 輕量語音轉文字，適合會議/語音筆記/播客</p>
+                <p class="model-meta" id="modelDescription">智譜 GLM 5.3 Flash：每百萬 $0.048/$0.20，智力 41.8，1M 上下文</p>
+                <p class="model-meta" id="asrModelDescription">MAI-Transcribe 2：FLEURS 多語言第 1，60 語言，$0.10/小時</p>
                 <p class="model-meta"><a href="https://openrouter.ai/models" target="_blank" rel="noopener" data-i18n="referenceModelList">OpenRouter 官方模型列表</a></p>
             </div>
             <div id="customModelContainer" class="hidden model-bar-custom">
@@ -231,7 +205,26 @@
                         <input type="radio" name="translationStyle" value="academic" id="styleAcademic">
                         <span data-i18n="translationStyleAcademic">學術</span>
                     </label>
+                    <label class="style-chip" id="styleTechnicalLabel">
+                        <input type="radio" name="translationStyle" value="technical" id="styleTechnical">
+                        <span data-i18n="translationStyleTechnical">技術</span>
+                    </label>
                 </div>
+            </div>
+
+            <div class="settings-section compact">
+                <label class="form-label" data-i18n="translationDepth">翻譯深度</label>
+                <div class="style-selector">
+                    <label class="style-chip" id="depthFastLabel">
+                        <input type="radio" name="translationDepth" value="fast" checked id="depthFast">
+                        <span data-i18n="depthFast">即時</span>
+                    </label>
+                    <label class="style-chip" id="depthDeepLabel">
+                        <input type="radio" name="translationDepth" value="deep" id="depthDeep">
+                        <span data-i18n="depthDeep">三步精譯</span>
+                    </label>
+                </div>
+                <p class="info-box-text hint" data-i18n="depthHint">即時：單次調用，適合語音對話。三步精譯：直譯→反思→意譯，適合文件與長文，速度較慢。</p>
             </div>
         </section>
 
@@ -456,6 +449,38 @@
                 </div>
                 <div class="transcript-content result" id="targetText" data-i18n="waitingTranslation">等待翻譯...</div>
             </div>
+            <details class="transcript-box pipeline-card hidden" id="pipelinePanel">
+                <summary class="pipeline-head">
+                    <span class="pipeline-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h6"/><path d="M4 12h10"/><path d="M4 18h14"/><path d="m17 4 3 3-3 3"/></svg>
+                        <span data-i18n="pipelineTitle">三步譯稿</span>
+                    </span>
+                    <span class="pipeline-meta" id="pipelineMeta"></span>
+                </summary>
+                <div class="pipeline-body">
+                    <div class="pipeline-step">
+                        <div class="pipeline-step-label">
+                            <span class="pipeline-step-index">1</span>
+                            <span data-i18n="pipelineLiteral">直譯</span>
+                        </div>
+                        <div class="pipeline-text" id="pipelineLiteral"></div>
+                    </div>
+                    <div class="pipeline-step">
+                        <div class="pipeline-step-label">
+                            <span class="pipeline-step-index">2</span>
+                            <span data-i18n="pipelineCritique">反思</span>
+                        </div>
+                        <div class="pipeline-text critique" id="pipelineCritique"></div>
+                    </div>
+                    <div class="pipeline-step">
+                        <div class="pipeline-step-label">
+                            <span class="pipeline-step-index">3</span>
+                            <span data-i18n="pipelineRewrite">意譯</span>
+                        </div>
+                        <div class="pipeline-text" id="pipelineFinal"></div>
+                    </div>
+                </div>
+            </details>
             <div id="additionalTranslations" class="additional-translations hidden" aria-live="polite"></div>
         </section>
 

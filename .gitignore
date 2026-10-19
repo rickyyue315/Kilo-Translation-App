@@ -9,3 +9,7 @@ dist-verify*/
 *.log
 .DS_Store
 Thumbs.db
+
+# Local agent state and generated preview artefacts
+.preview/
+.workbuddy/

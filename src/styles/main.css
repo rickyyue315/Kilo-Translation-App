@@ -762,3 +762,50 @@ html[data-theme="dark"] .btn-primary { color: #fff; }
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     html { scroll-behavior: auto; }
 }
+
+/* ===== Three-pass drafts panel (直譯 / 反思 / 意譯) ===== */
+.pipeline-card { padding: 0; overflow: hidden; }
+.pipeline-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-3); padding: var(--space-3) var(--space-4);
+    cursor: pointer; list-style: none; user-select: none;
+}
+.pipeline-head::-webkit-details-marker { display: none; }
+.pipeline-card[open] .pipeline-head { border-bottom: 1px solid var(--color-border); }
+.pipeline-title {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    font-weight: 600; font-size: 0.9rem; color: var(--color-text-2);
+}
+.pipeline-title svg { width: 16px; height: 16px; color: var(--color-primary); }
+.pipeline-meta { font-size: 0.75rem; color: var(--color-text-muted); text-align: right; }
+.pipeline-body {
+    padding: var(--space-4);
+    display: flex; flex-direction: column; gap: var(--space-4);
+}
+.pipeline-step { border-left: 2px solid var(--color-border); padding-left: var(--space-3); }
+.pipeline-step-label {
+    display: flex; align-items: center; gap: var(--space-2);
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--color-text-3);
+    margin-bottom: var(--space-1);
+}
+.pipeline-step-index {
+    width: 1.15rem; height: 1.15rem; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--color-primary-subtle); color: var(--color-primary);
+    font-size: 0.68rem; letter-spacing: 0;
+}
+.pipeline-text {
+    font-size: 0.875rem; line-height: 1.65;
+    color: var(--color-text-2);
+    white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.pipeline-text.critique {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.78rem; line-height: 1.55; color: var(--color-text-muted);
+    background: var(--color-surface-2); border-radius: 8px;
+    padding: var(--space-2) var(--space-3);
+}
+.pipeline-text:empty::after {
+    content: '—'; color: var(--color-text-muted);
+}

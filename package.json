@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
+    "check:models": "node scripts/check-models.mjs",
     "test:deploy": "node test-deployment.js"
   },
   "dependencies": {

@@ -12,7 +12,7 @@
 - 📱 **響應式設計**：適配桌面和行動裝置，優化觸控體驗
 - 💾 **翻譯歷史**：自動保存翻譯記錄，最多保存 50 筆
 - 🔄 **流式翻譯**：即時顯示翻譯過程
-- 🎯 **多 AI 模型選擇**：支援精選 AI 模型，基於 OpenRouter 2025 推薦清單 + 自定義選項
+- 🎯 **多 AI 模型選擇**：支援精選 AI 模型（清單以 OpenRouter 實測為準）+ 自定義選項
 - 🌐 **多介面語言**：支援繁體中文、簡體中文、英文、日文、韓文介面
 - 👥 **雙人交流模式**：支援兩人輪流對話，自動切換語言方向
 - 🔍 **英語參考翻譯**：雙方都非英語時自動顯示英語中間翻譯
@@ -125,40 +125,40 @@
    - 點擊「清除文字」清空文字輸入框（文字輸入模式）
    - 點擊「清除歷史」清除所有翻譯記錄
 
-### AI 模型選擇（基於 OpenRouter 2025 最新推薦清單）
+### AI 模型選擇（2026-10 實測）
 
-應用程式使用 OpenRouter API 進行高品質 AI 翻譯，提供精選的 AI 模型選擇，分為四大類別：
+模型清單由 `src/js/modelCatalog.js` 統一管理，可用 `npm run check:models` 對 OpenRouter 實時核對。完整價格、延遲與選型理由見 [MODEL_SELECTION.md](MODEL_SELECTION.md)。
 
-#### 🏆 頂級模型 (推薦)
-- **OpenAI GPT-5 Mini**：經濟實惠版本，保持高品質翻譯
-- **OpenAI GPT-4o Mini**：高效能小型模型，平衡速度與品質
-- **Google Gemini 3 Flash Preview**：最新頂級模型，領先的翻譯能力
+#### 💰 高性價比（預設）
 
-#### 💰 高性價比模型
-- **Google Gemini 2.5 Flash Lite**：最新高性價比模型，優化翻譯品質
-- **Google Gemini 2.0 Flash Lite**：高性價比的快速模型，適合日常翻譯
-- **OpenAI GPT-5 Nano**：超輕量級模型，極速響應
-- **OpenAI GPT-4.1 Nano**：輕量高效模型，適合快速翻譯
-- **DeepSeek V3.2**：最新高性價比模型，優秀的翻譯品質
-- **X-AI Grok 4.1 Fast**：快速高效模型，即時翻譯響應
+| 模型 | 每百萬 token（輸入/輸出） | 用途 |
+|------|--------------------------|------|
+| 智譜 GLM 5.3 Flash | $0.048 / $0.20 | 預設首選，智力指數 41.8 |
+| Xiaomi MiMo V2.6 Flash | $0.14 / $0.28 | 智力 37.9，支援語音與影像 |
+| Tencent Hy-MT2 30B | $0.074 / $0.29 | 翻譯專用，33 語言對＋術語表 |
+| DeepSeek V4 Flash 0731 | $0.15 / $0.15 | 輸出最便宜 |
+| Qwen 3.7 Flash | $0.03 / $0.13 | 單價最低，適合批次 |
 
-#### 🆓 免費選項
-- **Google Gemma 3 27B**：大型免費模型，強大的理解和生成能力
-- **DeepSeek R1T2 Chimera**：免費推理模型，邏輯思考能力強
-- **Qwen3 Coder**：免費編程專用模型，技術翻譯優勢
-- **Meituan LongCat Flash**：免費對話模型，自然流暢的交互
-- **TNG R1T Chimera**：免費推理模型，複雜邏輯處理
-- **Google Gemini 2.0 Flash Exp**：免費實驗版，體驗最新技術
-- **NVIDIA Nemotron Nano 12B**：免費視覺語言模型，多模態理解
-- **Xiaomi Mimo V2 Flash**：免費快速模型，高效響應速度
-- **NVIDIA Nemotron 3 Nano 30B**：大型免費模型，強大的處理能力
-- **Nex-AGI DeepSeek V3.1**：免費推理模型，優秀的邏輯推理
+#### 🏆 頂級
+
+| 模型 | 每百萬 token（輸入/輸出） | 用途 |
+|------|--------------------------|------|
+| 智譜 GLM 5.3 | $0.079 / $1.40 | 三步精譯的反思品質最好 |
+| Xiaomi MiMo V2.6 Pro | $0.435 / $0.87 | 智力 46.3，本清單最高 |
+| Tencent Hy4 Preview | $0.834 / $2.50 | 1M 上下文旗艦 |
+| Tencent Hy3 | $0.132 / $0.53 | 中英互譯穩健 |
+| Qwen 3.8 Flash | $0.15 / $0.47 | 圖表與文件理解強 |
+
+#### 🆓 免費（伺服器金鑰預設可用）
+
+Inkling Small、Inkling、Nemotron 3.5 Super VL、Nemotron 3 Ultra 550B、星辰 Xing4.0 29B、Nemotron 3.5 Lightning、Nemotron 3 Super 120B。智力指數 12–27，明顯低於付費層，適合零成本備援。
+
+> 伺服器 API 金鑰預設**只能**使用免費模型。設定環境變數 `ALLOW_PAID_MODELS=1` 後，會額外開放 GLM 5.3 Flash、Hy-MT2 30B、GLM 5.3 三個精選付費模型（前端會透過 `/api/health` 自動同步這份清單）。使用自己的 API 金鑰時，全部模型可用。
 
 #### 🔧 自定義模型
-- **自定義模型**：支援輸入任何 OpenRouter 平台上的模型 ID
-  - 格式：`provider/model-name`（如：`openai/gpt-4o-turbo`）
-  - 可使用任何 OpenRouter 支援的模型
-  - 參考 [OpenRouter 完整模型列表](https://openrouter.ai/models)
+
+- 可輸入任何 OpenRouter 模型 ID，格式 `provider/model-name`
+- 參考 [OpenRouter 完整模型列表](https://openrouter.ai/models)
 
 ### 雙人交流模式使用指南
 

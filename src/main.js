@@ -1,7 +1,7 @@
 // Kilo Translation App - Main Entry Point
 import './styles/main.css';
 import { i18n, t, updateInterfaceLanguage } from './js/i18n.js';
-import { languageMap, aiModels, modelCategories, freeModelsOnly, updateModelDescription, filterModelsForServerAPI, showOpenRouterModels, showAllModels } from './js/models.js';
+import { languageMap, aiModels, modelCategories, freeModelsOnly, updateModelDescription, filterModelsForServerAPI, showOpenRouterModels, showAllModels, setServerPaidEnabled } from './js/models.js';
 import { isMobileDevice, isIOSDevice, isSafariBrowser, checkBrowserSupport, createVolumeIndicator, loadSavedData } from './js/utils.js';
 import { initializeSpeechRecognition, startRecording, stopRecording, playTranslation, getIsRecording } from './js/speech.js';
 import { OPENROUTER_ASR_MODELS, getSavedAsrModel, setSavedAsrModel } from './js/asr.js';
@@ -227,6 +227,9 @@ function initializeApp() {
   }
   updateInterfaceLanguage(savedLang, elements);
 
+  // Non-blocking: ask the backend whether its key may spend on paid models.
+  void syncServerModelPolicy(elements);
+
   // Restore persisted source/target languages
   try {
     const savedSource = localStorage.getItem('source_language');
@@ -313,6 +316,9 @@ function initializeApp() {
 
   // Initialize ASR model selector (OpenRouter voice conversation)
   if (elements.asrModel) {
+    elements.asrModel.innerHTML = Object.entries(OPENROUTER_ASR_MODELS)
+      .map(([id, model]) => `<option value="${id}">${model.name} (${model.vendor})</option>`)
+      .join('');
     const savedAsr = getSavedAsrModel();
     if (OPENROUTER_ASR_MODELS[savedAsr]) elements.asrModel.value = savedAsr;
     updateAsrDescription(elements.asrModel.value);
@@ -333,9 +339,37 @@ function initializeApp() {
   console.log('Kilo Translation App v3.0.0 ready!');
 }
 
+/**
+ * Ask the backend whether its key may use paid models, then re-render the
+ * server-key list. Any failure keeps the free-only default — this must never
+ * block startup.
+ */
+async function syncServerModelPolicy(elements) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    const response = await fetch('/api/health', { signal: controller.signal });
+    clearTimeout(timer);
+    if (!response.ok) return;
+
+    const data = await response.json();
+    setServerPaidEnabled(Boolean(data.paidModelsEnabled));
+
+    if (elements.serverApiKey?.checked) {
+      const lang = localStorage.getItem('interface_language') || 'zh-TW';
+      filterModelsForServerAPI({
+        aiModel: elements.aiModel,
+        modelDescription: elements.modelDescription,
+        translations: i18n[lang] || i18n['zh-TW'] || {}
+      });
+    }
+  } catch {
+    // Offline, static host, or no health endpoint — stay on free models.
+  }
+}
+
 // Get current application state (passed to translation functions)
-function getAppState(extra = {}) {
-  return {
+function getAppState(extra = {}) {  return {
     isDualMode: getIsDualMode(),
     currentUser: getCurrentUser(),
     speaker: extra.speaker,
