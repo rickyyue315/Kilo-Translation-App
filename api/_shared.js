@@ -309,7 +309,10 @@ export async function translateWithOpenRouter(text, sourceLang, targetLang, mode
           response.status === 429 ||
           errorMessage.includes('Provider returned error') ||
           errorMessage.includes('No endpoints found') ||
-          errorMessage.includes('temporarily unavailable');
+          errorMessage.includes('temporarily unavailable') ||
+          // Some "free" models are restricted to agentic harnesses and 403 for
+          // plain API keys. Treat as retryable so the next model gets a turn.
+          errorMessage.includes('agentic harness');
         if (retryable && currentModel !== modelsToTry[modelsToTry.length - 1]) continue;
         clearTimeout(timeoutId);
         return { error: errorMessage, status: response.status, model: currentModel };

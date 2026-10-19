@@ -13,3 +13,4 @@ Thumbs.db
 # Local agent state and generated preview artefacts
 .preview/
 .workbuddy/
+.netlify/

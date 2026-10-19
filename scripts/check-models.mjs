@@ -31,6 +31,16 @@ const c = colour;
 const problems = [];
 const warnings = [];
 
+/**
+ * Models that appear in the catalogue as free but reject plain API keys with
+ * "only available on agentic harnesses". Keep this list so the check fails
+ * loudly if one is ever added back to MODEL_ORDER.
+ */
+const HARNESS_ONLY = new Set([
+  'thinkingmachines/inkling:free',
+  'thinkingmachines/inkling-small:free',
+]);
+
 async function getJson(url) {
   const response = await fetch(url, { headers: { 'User-Agent': 'kilo-model-check/1.0' } });
   if (!response.ok) throw new Error(`${url} → HTTP ${response.status}`);
@@ -76,6 +86,11 @@ async function main() {
   }
 
   for (const id of ordered) {
+    if (HARNESS_ONLY.has(id)) {
+      problems.push(`${id} — free but restricted to agentic harnesses (403 for plain API keys)`);
+      console.log(`${c.red}HARNESS${c.off} ${id}`);
+      continue;
+    }
     const recorded = MODEL_CATALOG[id];
     const live = byId.get(id);
 

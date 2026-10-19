@@ -487,6 +487,19 @@ export async function performTranslation(text, sourceLang, targetLang, elements,
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
+/**
+ * Parse a backend response that should be JSON.
+ * Static hosts kill long-running functions and return an HTML error page; turn
+ * that into something the user can act on instead of a JSON syntax error.
+ */
+async function readJsonBody(response, translations = {}) {
+    const contentType = response.headers?.get?.('content-type') || '';
+    if (!contentType.includes('application/json')) {
+        throw new Error(translations.serverUnavailable || '翻譯服務暫時無回應（可能逾時），請重試或縮短段落');
+    }
+    return response.json();
+}
+
 function stageBudget(stage) {
     if (stage === STAGE.REWRITE) return { temperature: 0.4, maxTokens: 4000 };
     if (stage === STAGE.DRAFT) return { temperature: 0.2, maxTokens: 2600 };
@@ -520,7 +533,7 @@ async function callStageWithServerKey(payload, { selectedModel, signal }) {
         throw new Error(message);
     }
 
-    const data = await response.json();
+    const data = await readJsonBody(response);
     if (data.error) throw new Error(data.error);
 
     const content = data.choices?.[0]?.message?.content;
@@ -680,7 +693,7 @@ export async function translateWithServerAPIDirect(text, sourceLang, targetLang,
         throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    const data = await readJsonBody(response);
 
     if (data.error) {
         throw new Error(data.error);

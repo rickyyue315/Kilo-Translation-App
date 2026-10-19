@@ -112,37 +112,13 @@ export const MODEL_CATALOG = {
   },
 
   // ── 免費：零成本備援，品質明顯低於付費層 ──────────────────
-  'thinkingmachines/inkling-small:free': {
-    name: 'Inkling Small',
-    tier: 'free',
-    note: '免費，智力 25.7，1M 上下文，可用率 100%；免費層首選',
-    input: 0,
-    output: 0,
-    context: 1048576,
-    iq: 25.7,
-  },
-  'thinkingmachines/inkling:free': {
-    name: 'Inkling',
-    tier: 'free',
-    note: '免費，智力 25.0，1M 上下文，旗艦蒸餾版',
-    input: 0,
-    output: 0,
-    context: 1048576,
-    iq: 25.0,
-  },
-  'nvidia/nemotron-3.5-super-vl:free': {
-    name: 'NVIDIA Nemotron 3.5 Super VL',
-    tier: 'free',
-    note: '免費，智力 26.5，2026-10 最新；近期可用率 93%',
-    input: 0,
-    output: 0,
-    context: 1000000,
-    iq: 26.5,
-  },
+  // 注意：thinkingmachines/inkling 與 inkling-small 雖然在目錄中標示為 free，
+  // 但實際調用會回 403「only available on agentic harnesses」，一般應用無法使用，
+  // 2026-10-19 實測後移除，勿再加回。
   'nvidia/nemotron-3-ultra-550b-a55b:free': {
     name: 'NVIDIA Nemotron 3 Ultra',
     tier: 'free',
-    note: '免費，智力 22.9，550B MoE 推理旗艦',
+    note: '免費，智力 22.9，550B MoE；實測可用，免費層首選',
     input: 0,
     output: 0,
     context: 1000000,
@@ -151,25 +127,25 @@ export const MODEL_CATALOG = {
   'xingchen-agi/xing4.0-29b-a4b:free': {
     name: '星辰 Xing4.0 29B',
     tier: 'free',
-    note: '免費，2026-10 最新，中國電信 TeleAI 中文優化',
+    note: '免費，2026-10 最新，中國電信 TeleAI 中文優化；實測可用',
     input: 0,
     output: 0,
     context: 262144,
     iq: null,
   },
-  'nvidia/nemotron-3.5-lightning:free': {
-    name: 'NVIDIA Nemotron 3.5 Lightning',
+  'google/gemma-4-31b-it:free': {
+    name: 'Gemma 4 31B Instruct',
     tier: 'free',
-    note: '免費，高吞吐低延遲，適合即時語音；智力 12.9',
+    note: '免費，256K 上下文，通用指令遵循；備援',
     input: 0,
     output: 0,
-    context: 1000000,
-    iq: 12.9,
+    context: 262144,
+    iq: 14.7,
   },
   'nvidia/nemotron-3-super-120b-a12b:free': {
     name: 'NVIDIA Nemotron 3 Super 120B',
     tier: 'free',
-    note: '免費，262K 上下文，備援用',
+    note: '免費，262K 上下文；實測可用，最後備援',
     input: 0,
     output: 0,
     context: 262144,
@@ -182,13 +158,10 @@ export const MODEL_ORDER = {
   value: ['z-ai/glm-5.3-flash', 'xiaomi/mimo-v2.6-flash', 'tencent/hy-mt2-30b-a3b', 'deepseek/deepseek-v4-flash-0731', 'qwen/qwen3.7-flash'],
   top: ['z-ai/glm-5.3', 'xiaomi/mimo-v2.6-pro', 'tencent/hy4-preview', 'tencent/hy3', 'qwen/qwen3.8-flash'],
   free: [
-    'thinkingmachines/inkling-small:free',
-    'thinkingmachines/inkling:free',
-    'nvidia/nemotron-3.5-super-vl:free',
+    'google/gemma-4-31b-it:free',
+    'nvidia/nemotron-3-super-120b-a12b:free',
     'nvidia/nemotron-3-ultra-550b-a55b:free',
     'xingchen-agi/xing4.0-29b-a4b:free',
-    'nvidia/nemotron-3.5-lightning:free',
-    'nvidia/nemotron-3-super-120b-a12b:free',
   ],
 };
 
