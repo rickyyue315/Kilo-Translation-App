@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 13+ 主題化圖示（monochrome 圖層）。
+  規則：線寬 ≥8dp、內容落在 108dp 網格的內 66dp 安全區（21–87），否則縮放後消失。
+  這裡用「實心麥克風剪影 + 8dp 支架」而不是純線稿，確保任何縮放比例都看得到。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 麥克風膠囊（實心） -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,24 C50.1,24 47,27.1 47,31 L47,47 C47,50.9 50.1,54 54,54 C57.9,54 61,50.9 61,47 L61,31 C61,27.1 57.9,24 54,24 Z" />
+
+    <!-- 拾音弧 -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M38,45 L38,48 C38,56.8 45.2,64 54,64 C62.8,64 70,56.8 70,48 L70,45" />
+
+    <!-- 支架與底座 -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M54,64 L54,78" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M42,78 L66,78" />
+</vector>

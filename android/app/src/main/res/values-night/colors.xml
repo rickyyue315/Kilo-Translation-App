@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色啟動底色：不覆蓋會「深色模式白閃一下」 -->
+    <color name="splashBackground">#0B1220</color>
+</resources>

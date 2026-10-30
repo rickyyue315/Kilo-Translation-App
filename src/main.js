@@ -2,13 +2,30 @@
 import './styles/main.css';
 import { i18n, t, updateInterfaceLanguage } from './js/i18n.js';
 import { languageMap, aiModels, modelCategories, freeModelsOnly, updateModelDescription, filterModelsForServerAPI, showOpenRouterModels, showAllModels, setServerPaidEnabled } from './js/models.js';
-import { isMobileDevice, isIOSDevice, isSafariBrowser, checkBrowserSupport, createVolumeIndicator, loadSavedData } from './js/utils.js';
-import { initializeSpeechRecognition, startRecording, stopRecording, playTranslation, getIsRecording } from './js/speech.js';
+import { isMobileDevice, isIOSDevice, isSafariBrowser, createVolumeIndicator, loadSavedData } from './js/utils.js';
+import { initializeSpeechRecognition, startRecording, stopRecording, playTranslation, getIsRecording, refreshRecordButtonLabels } from './js/speech.js';
 import { OPENROUTER_ASR_MODELS, getSavedAsrModel, setSavedAsrModel } from './js/asr.js';
 import { translateText, translateTextInDualMode, performTranslation, getCurrentTranslation } from './js/translation.js';
 import { addToHistory, addToHistoryInDualMode, updateHistoryDisplay, clearHistory, setTranslationHistory, attachHistoryListeners } from './js/history.js';
-import { setupEventListeners, handleModeChange, swapUsers, updateUserLabels, refreshDualMicLabels, updateStatus, showError, hideError, showSuccess, animateVolumeIndicator, initTooltipPositioning, initTheme, getIsDualMode, getCurrentUser, switchToTextMode, switchToVoiceMode, switchToVoiceChatMode, switchToDualVoiceMode, switchToDualVoiceChatMode, switchToDualTextMode, populateExtraTargetCheckboxes } from './js/ui.js';
+import { setupEventListeners, handleModeChange, swapUsers, updateUserLabels, refreshDualMicLabels, updateStatus, showError, hideError, showSuccess, animateVolumeIndicator, initTooltipPositioning, initTheme, getIsDualMode, getCurrentUser, switchToTextMode, switchToVoiceMode, switchToVoiceChatMode, switchToDualVoiceMode, switchToDualVoiceChatMode, switchToDualTextMode, populateExtraTargetCheckboxes, initTabs, initSheets } from './js/ui.js';
 import { ensureVisualizerBars, setVoiceChatLive, AUTOPLAY_STORAGE_KEY, CONTEXT_STORAGE_KEY, CONTEXT_WINDOW_STORAGE_KEY, updateVoiceChatVisibility } from './js/voicechat.js';
+import { apiUrl, isNative } from './js/api.js';
+import { getCapabilityReport, applySystemFontScale, refreshFontScale, onFontScaleChange, watchNetwork } from './js/capabilities.js';
+
+// 首屏 paint 前先套用系統字級。
+// Android WebView 不會自動套用 fontScale，若等到 initializeApp 才處理，
+// 使用者會先看到 16px 再跳成 32px。html[data-booting] 由 <head> 的 inline 腳本設定，
+// 這裡一拿到值就解除；inline 端另有 1200ms 保險絲，模組載入失敗也不會永久白屏。
+const bootReady = (async () => {
+  try {
+    await applySystemFontScale();
+  } catch {
+    // 取不到 fontScale 時維持 1.0，屬已知限制
+  } finally {
+    document.documentElement.removeAttribute('data-booting');
+  }
+})();
+
 
 // DOM Elements Registry
 const elements = {
@@ -135,8 +152,12 @@ function initializeApp() {
     document.body.classList.add('mobile-device');
   }
   
-  // Browser support check
-  checkBrowserSupport((msg) => showError(msg, elements));
+  // 能力分級：不再硬阻擋。
+  // WebView 沒有 Web Speech 是常態，不是錯誤 —— 只有連 MediaRecorder 都沒有時才降級成
+  // textOnly（停用麥克風入口），文字翻譯 / 歷史 / 朗讀一律照常。
+  const capability = getCapabilityReport();
+  renderCapabilityNotice(capability, elements);
+  applyCapabilityGating(capability, elements);
   
   // Create volume indicator
   createVolumeIndicator(elements.volumeIndicator);
@@ -227,6 +248,10 @@ function initializeApp() {
   }
   updateInterfaceLanguage(savedLang, elements);
 
+  // header 的模型 chip（模型清單在 loadSavedData 內可能已被重建）
+  updateModelChip(elements);
+  elements.aiModel?.addEventListener('change', () => updateModelChip(elements));
+
   // Non-blocking: ask the backend whether its key may spend on paid models.
   void syncServerModelPolicy(elements);
 
@@ -302,6 +327,7 @@ function initializeApp() {
 
   // Paint dual-mic captions once at startup
   refreshDualMicLabels(elements);
+  refreshRecordButtonLabels(elements);
 
   // Voice-chat panel: visualizer skeleton + correct initial visibility
   ensureVisualizerBars();
@@ -313,6 +339,50 @@ function initializeApp() {
   
   // Initialize extra target language checkboxes
   populateExtraTargetCheckboxes(elements);
+
+  // 2 分頁 + Bottom Sheet（取代桌面式的長滾動與 8 欄面板）
+  initTabs();
+  initSheets(elements);
+
+  // 離線：全域 banner + 擋住錄音入口；文字翻譯與歷史仍可瀏覽
+  void watchNetwork((online) => {
+    document.documentElement.classList.toggle('is-offline', !online);
+    if (!online) {
+      showError(t('statusOffline') || '目前離線：語音辨識與雲端翻譯不可用', elements);
+    }
+  });
+
+  // Android 返回鍵 + 字級重讀
+  if (isNative()) {
+    void onFontScaleChange();
+
+    void (async () => {
+      try {
+        const mod = await import('@capacitor/app');
+        mod.App.addListener('backButton', () => {
+          const openSheet = document.querySelector('.sheet.open');
+          if (openSheet) {
+            openSheet.classList.remove('open');
+            document.body.classList.remove('sheet-open');
+            document.getElementById('sheetBackdrop')?.setAttribute('hidden', '');
+            return;
+          }
+          const openModal = document.querySelector('.modal-backdrop.open');
+          if (openModal) {
+            openModal.classList.remove('open');
+            return;
+          }
+          mod.App.exitApp();
+        });
+        // 在背景改完系統字級再回來：重讀，否則會出現「字沒變但版面已 compact」
+        mod.App.addListener('resume', () => {
+          void refreshFontScale();
+        });
+      } catch {
+        // 沒有 App 插件時交給系統預設行為
+      }
+    })();
+  }
 
   // Initialize ASR model selector (OpenRouter voice conversation)
   if (elements.asrModel) {
@@ -340,6 +410,60 @@ function initializeApp() {
 }
 
 /**
+ * header 上的模型 chip：只顯示模型名稱，點擊開 sheet 看完整說明。
+ * 模型清單會被 filterModelsForServerAPI() 重建，所以每次重建後都要重畫。
+ */
+function updateModelChip(elements) {
+  const chipText = document.getElementById('modelChipText');
+  if (!chipText || !elements.aiModel) return;
+  const option = elements.aiModel.selectedOptions?.[0];
+  const label = (option?.textContent || '').replace(/[（(][^)）]*[)）]/g, '').trim();
+  // 去掉開頭的全大寫廠牌（NVIDIA / OPENAI / GOOGLE…），否則 128px 只放得下「NV…」
+  const words = label.split(/\s+/).filter(Boolean);
+  const hasVendorPrefix = words.length > 1 && /^[A-Z0-9][A-Z0-9.+-]*$/.test(words[0]);
+  const short = (hasVendorPrefix ? words.slice(1).join(' ') : label) || 'AI 模型';
+  chipText.textContent = short;
+  document.getElementById('modelChip')?.setAttribute('title', option?.textContent?.trim() || 'AI 模型設定');
+}
+
+/**
+ * 能力提示：只在真的缺東西時出現，而且不擋任何流程。
+ * textOnly 是「麥克風不可用」而非「App 不可用」。
+ */
+function renderCapabilityNotice(report, elements) {
+  const notice = document.getElementById('capabilityNotice');
+  if (!notice) return;
+
+  if (report.level !== 'textOnly') {
+    notice.classList.add('hidden');
+    notice.textContent = '';
+    return;
+  }
+
+  notice.classList.remove('hidden');
+  notice.textContent = t('capabilityTextOnly') || '此裝置無法錄音，已切換為文字模式；翻譯與朗讀仍可正常使用。';
+  if (elements.recordButton) elements.recordButton.setAttribute('aria-disabled', 'true');
+}
+
+/**
+ * 依能力報告收掉不可用的入口。
+ * 注意：只 disable / 加 aria-disabled，不移除節點 —— 移除會讓既有事件綁定 TypeError。
+ */
+function applyCapabilityGating(report, elements) {
+  if (report.missing.includes('recording')) {
+    const micButtons = [
+      elements.recordButton,
+      document.getElementById('dualMicA'),
+      document.getElementById('dualMicB'),
+    ].filter(Boolean);
+    micButtons.forEach((btn) => {
+      btn.disabled = true;
+      btn.setAttribute('aria-disabled', 'true');
+    });
+  }
+}
+
+/**
  * Ask the backend whether its key may use paid models, then re-render the
  * server-key list. Any failure keeps the free-only default — this must never
  * block startup.
@@ -348,7 +472,7 @@ async function syncServerModelPolicy(elements) {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 2000);
-    const response = await fetch('/api/health', { signal: controller.signal });
+    const response = await fetch(apiUrl('/api/health'), { signal: controller.signal });
     clearTimeout(timer);
     if (!response.ok) return;
 
@@ -362,6 +486,7 @@ async function syncServerModelPolicy(elements) {
         modelDescription: elements.modelDescription,
         translations: i18n[lang] || i18n['zh-TW'] || {}
       });
+      updateModelChip(elements);
     }
   } catch {
     // Offline, static host, or no health endpoint — stay on free models.
@@ -388,13 +513,31 @@ function getAppState(extra = {}) {  return {
   };
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', initializeApp);
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // SW registration failed — app still works without it
-    });
+// Initialize when DOM is ready — 但先等系統字級就緒（bootReady），確保首屏就是正確字級。
+document.addEventListener('DOMContentLoaded', () => {
+  void bootReady.then(() => {
+    initializeApp();
   });
+});
+
+// Service Worker：web 版照舊註冊；原生容器不註冊並主動清除殘留。
+// 理由：dist 已本地化，SW 沒有額外離線價值，而 cache-first 的固定 CACHE_NAME
+// 會在 cap sync 換版後持續供應舊 HTML/JS —— 使用者「更新了但畫面沒變」且無法自癒。
+if ('serviceWorker' in navigator) {
+  if (isNative()) {
+    navigator.serviceWorker.getRegistrations()
+      .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+      .catch(() => {});
+    if (window.caches) {
+      window.caches.keys()
+        .then((keys) => Promise.all(keys.map((key) => window.caches.delete(key))))
+        .catch(() => {});
+    }
+  } else {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        // SW registration failed — app still works without it
+      });
+    });
+  }
 }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  只在 debug 建置生效：允許連本機後端（vite proxy / Android 模擬器的 10.0.2.2）。
+  生產建置維持 usesCleartextTraffic="false"，不可全域開放明文流量。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:networkSecurityConfig="@xml/network_security_config"
+        tools:replace="android:networkSecurityConfig" />
+</manifest>

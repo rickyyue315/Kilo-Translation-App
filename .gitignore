@@ -14,3 +14,18 @@ Thumbs.db
 .preview/
 .workbuddy/
 .netlify/
+
+# Android 簽署金鑰：遺失即無法更新，備份到密碼管理器，絕不進版控
+key.properties
+*.keystore
+*.jks
+
+# Android / Gradle 本地產物
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/build/
+.idea/
+*.iml
+

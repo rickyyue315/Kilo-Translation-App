@@ -34,7 +34,21 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
 app.disable('x-powered-by');
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+
+// CORS：Capacitor 打包後頁面 origin 是 https://localhost，對後端而言是跨來源。
+// BYOK 會帶自訂 header `X-OpenRouter-Key`，會觸發 preflight —— allowedHeaders 沒列就被擋。
+// 生產環境設 CORS_ORIGIN=https://localhost,https://<web-domain>，不要留 '*'。
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins.length ? allowedOrigins : true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'X-OpenRouter-Key'],
+  maxAge: 86400,
+}));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: false }));
 

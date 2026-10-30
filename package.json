@@ -2,11 +2,16 @@
   "name": "kilo-voice-translator",
   "version": "3.0.0",
   "type": "module",
-  "description": "Kilo 即時語音翻譯器 - 模組化 Vite 架構，OpenRouter 翻譯 + 語音辨識，可部署於 Zeabur / Netlify",
+  "description": "Kilo 即時語音翻譯器 - 模組化 Vite 架構，OpenRouter 翻譯 + 語音辨識，可部署於 Zeabur / Netlify，並以 Capacitor 打包 Android",
   "scripts": {
     "dev": "vite",
     "build": "npm run icons && vite build",
+    "build:android": "npm run icons && node scripts/build-android.mjs",
     "icons": "node scripts/generate-icons.mjs",
+    "android:add": "npx cap add android",
+    "android:sync": "npm run icons:android && npm run build:android && npx cap sync android",
+    "android:debug": "npm run android:sync && cd android && ./gradlew assembleDebug",
+    "android:release": "npm run android:sync && cd android && ./gradlew bundleRelease",
     "preview": "vite preview",
     "start": "node server.js",
     "dev:netlify": "npx --yes netlify-cli@17 dev",
@@ -15,9 +20,20 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
     "check:models": "node scripts/check-models.mjs",
-    "test:deploy": "node test-deployment.js"
+    "test:deploy": "node test-deployment.js",
+    "icons:android": "node scripts/generate-android-icons.mjs",
+    "probe:ui": "node scripts/ui-probe.mjs"
   },
   "dependencies": {
+    "@capacitor-community/text-to-speech": "~8.0.2",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/keyboard": "8.0.6",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/preferences": "8.0.1",
+    "@capacitor/splash-screen": "8.0.2",
     "busboy": "^1.6.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -25,13 +41,25 @@
     "multer": "^2.0.1"
   },
   "devDependencies": {
-    "vite": "^6.0.0",
-    "vitest": "^3.0.0",
+    "@capacitor/cli": "8.5.3",
     "@vitest/coverage-v8": "^3.0.0",
     "eslint": "^9.0.0",
-    "terser": "^5.36.0",
     "jsdom": "^29.0.0",
-    "sharp": "^0.34.0"
+    "sharp": "^0.34.0",
+    "terser": "^5.36.0",
+    "typescript": "^7.0.2",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0"
+  },
+  "overrides": {
+    "@capacitor/core": "8.5.3",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/keyboard": "8.0.6",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/preferences": "8.0.1",
+    "@capacitor/splash-screen": "8.0.2"
   },
   "keywords": [
     "translation",
@@ -41,11 +69,13 @@
     "asr",
     "zeabur",
     "dual-api-key",
-    "security"
+    "security",
+    "capacitor",
+    "android"
   ],
   "author": "Kilo Code",
   "license": "MIT",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   }
 }

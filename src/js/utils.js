@@ -2,6 +2,10 @@
 
 import { LANGUAGES } from '../constants.js';
 
+// 能力報告改由 capabilities.js 統一持有（唯一真相）。
+// 這裡只做 re-export，讓既有 import 路徑不必改；實際邏輯見該檔。
+export { getCapabilityReport, resolveSpeechCapabilities } from './capabilities.js';
+
 // ========== Device / Browser Detection ==========
 
 /**
@@ -26,62 +30,13 @@ export function isSafariBrowser() {
 }
 
 /**
- * 檢查瀏覽器支援 (SpeechRecognition, speechSynthesis, fetch, localStorage)
- * @param {function} showError - 顯示錯誤訊息的回呼函式
- * @returns {boolean}
+ * 舊版 checkBrowserSupport() 已移除。
+ *
+ * 它只要偵測不到 SpeechRecognition 就 showError() 並 return false，
+ * 而 Android WebView 100% 沒有這個 API —— 等於在初始化鏈最前面把整個 App 擋死。
+ * 現在改成「能力分級」：getCapabilityReport()（見 capabilities.js）只回報缺什麼，
+ * 呼叫端在 textOnly 時停用麥克風，文字翻譯 / 歷史 / 朗讀照常。
  */
-export function checkBrowserSupport(showError) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const speechSynthesis = window.speechSynthesis;
-    const userAgent = navigator.userAgent;
-
-    // 檢測瀏覽器類型
-    const isSafari = isSafariBrowser();
-    const isIOS = isIOSDevice();
-    const isMobile = isMobileDevice();
-
-    // 檢查基本 API 支援
-    if (!SpeechRecognition) {
-        console.error('Speech Recognition not supported');
-
-        if (isSafari) {
-            showError('Safari 瀏覽器目前不支援語音識別功能。建議使用 Chrome、Edge 或 Firefox 瀏覽器。');
-        } else {
-            showError('您的瀏覽器不支援語音辨識功能。請使用 Chrome、Edge 或 Safari 瀏覽器。');
-        }
-        return false;
-    }
-
-    if (!speechSynthesis) {
-        console.error('Speech Synthesis not supported');
-        showError('您的瀏覽器不支援語音合成功能。請更新瀏覽器版本。');
-        return false;
-    }
-
-    // 檢查 fetch API 支援
-    if (!window.fetch) {
-        console.error('Fetch API not supported');
-        showError('您的瀏覽器版本過舊，不支援必要的網路功能。請更新瀏覽器。');
-        return false;
-    }
-
-    // 檢查 localStorage 支援
-    try {
-        localStorage.setItem('test', 'test');
-        localStorage.removeItem('test');
-    } catch (e) {
-        console.error('LocalStorage not supported');
-        showError('您的瀏覽器不支援本地儲存功能。');
-        return false;
-    }
-
-    // Safari 特別提示
-    if (isSafari && isIOS) {
-        console.log('iOS Safari 檢測：語音識別可能需要用戶交互才能啟動');
-    }
-
-    return true;
-}
 
 // ========== Language Utilities ==========
 

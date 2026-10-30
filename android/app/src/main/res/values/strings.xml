@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kilo 翻譯</string>
+    <string name="title_activity_main">Kilo 翻譯</string>
+    <string name="package_name">app.kilo.translator</string>
+    <string name="custom_url_scheme">app.kilo.translator</string>
+</resources>

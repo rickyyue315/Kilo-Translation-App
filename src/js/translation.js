@@ -4,6 +4,7 @@ import { i18n } from './i18n.js';
 import { languageMap } from './models.js';
 import { needsEnglishTranslation } from './utils.js';
 import { playTranslation } from './speech.js';
+import { apiUrl } from './api.js';
 import { STAGE, buildFastMessages, buildMessages } from './prompts.js';
 import { DEPTH, PIPELINE_PHASES, runThreePassPipeline, shouldUseDeepPipeline } from './pipeline.js';
 import { clearPipelineSteps, describePhase, renderPipelineProgress, renderPipelineSteps } from './pipelineView.js';
@@ -293,7 +294,12 @@ Specific Language Translation Rules:
     return stylePrompt ? `${prompt}\n\n${stylePrompt}` : prompt;
 }
 
-const BACKEND_TRANSLATE_ENDPOINTS = ['/api/translate', '/.netlify/functions/translate'];
+// 打包後 origin 是 https://localhost，相對路徑會打到 WebView 自己（404）。
+// 所有後端端點只能經過 apiUrl() 這個單一出口（ANDROID_APP.md §2.4）。
+const BACKEND_TRANSLATE_ENDPOINTS = [
+    apiUrl('/api/translate'),
+    apiUrl('/.netlify/functions/translate')
+];
 
 async function postTranslate(requestBody, signal) {
     let lastError = null;

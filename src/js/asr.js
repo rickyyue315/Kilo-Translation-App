@@ -8,6 +8,7 @@
 // shared with the backend. Re-verify with: npm run check:models
 
 import { ASR_MODELS, DEFAULT_ASR_MODEL as CATALOG_DEFAULT_ASR_MODEL } from './modelCatalog.js';
+import { apiUrl, isNative } from './api.js';
 
 export const OPENROUTER_ASR_MODELS = ASR_MODELS;
 export const DEFAULT_ASR_MODEL = CATALOG_DEFAULT_ASR_MODEL;
@@ -55,7 +56,18 @@ export function setSavedAsrModel(modelId) {
 }
 
 export function getTranscribeEndpoint() {
-  return '/api/transcribe';
+  // 絕對位址：原生容器內相對路徑會打到 WebView 自己
+  return apiUrl('/api/transcribe');
+}
+
+/**
+ * 行動網路／原生容器的辨識逾時。
+ * web 桌面維持 90s（長錄音仍可完成）；原生 App 降到 20s，
+ * 因為行動網路下的等待體感遠比桌機差，寧可早點告訴使用者「請縮短錄音」。
+ * @returns {number}
+ */
+export function getTranscribeTimeoutMs() {
+  return isNative() ? 20000 : 90000;
 }
 
 /**
@@ -74,7 +86,7 @@ export async function transcribeAudio(audioBlob, options = {}) {
     model = getSavedAsrModel(),
     language,
     apiKey,
-    timeoutMs = 90000,
+    timeoutMs = getTranscribeTimeoutMs(),
   } = options;
 
   if (!audioBlob || audioBlob.size === 0) {
@@ -94,7 +106,7 @@ export async function transcribeAudio(audioBlob, options = {}) {
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  const endpoints = [getTranscribeEndpoint(), '/.netlify/functions/transcribe'];
+  const endpoints = [getTranscribeEndpoint(), apiUrl('/.netlify/functions/transcribe')];
   try {
     let response = null;
     for (const endpoint of endpoints) {
@@ -124,7 +136,7 @@ export async function transcribeAudio(audioBlob, options = {}) {
     if (!data.text) throw new Error('語音辨識未返回文字結果');
     return data;
   } catch (error) {
-    if (error.name === 'AbortError') throw new Error('語音辨識逾時，請改用較短的錄音再試');
+    if (error.name === 'AbortError') throw new Error('語音辨識逾時，請縮短錄音再試');
     throw error;
   } finally {
     clearTimeout(timeoutId);
@@ -135,7 +147,7 @@ export async function transcribeAudio(audioBlob, options = {}) {
  * Transcribe by calling OpenRouter directly (BYOK path — user key, no backend).
  */
 export async function transcribeAudioDirect(audioBlob, apiKey, options = {}) {
-  const { model = getSavedAsrModel(), language, timeoutMs = 90000 } = options;
+  const { model = getSavedAsrModel(), language, timeoutMs = getTranscribeTimeoutMs() } = options;
   if (!apiKey) throw new Error('請輸入 OpenRouter API 金鑰');
   if (!audioBlob || audioBlob.size === 0) throw new Error('沒有錄到聲音，請再試一次');
   if (!OPENROUTER_ASR_MODELS[model]) throw new Error(`不支援的 ASR 模型: ${model}`);

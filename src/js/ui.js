@@ -8,7 +8,8 @@ import {
     showAllModels
 } from './models.js';
 import { getExtraTargetLanguages, setExtraTargetLanguages } from './translation.js';
-import { toggleRecording, toggleDualMic, startRecording, stopRecording, playTranslation, getIsRecording } from './speech.js';
+import { toggleRecording, toggleDualMic, startRecording, stopRecording, playTranslation, getIsRecording, refreshRecordButtonLabels } from './speech.js';
+import { hapticTap } from './capabilities.js';
 import {
     AUTOPLAY_STORAGE_KEY,
     CONTEXT_STORAGE_KEY,
@@ -57,12 +58,15 @@ export function setupEventListeners(elements, callbacks = {}) {
     if (interfaceLanguageSelector) {
         interfaceLanguageSelector.addEventListener('change', function () {
             updateInterfaceLanguage(this.value, elements);
+            // 切換介面語言後 aria-label 必須跟著換，否則會出現「中文介面 + 英文 label」
+            refreshRecordButtonLabels(elements);
         });
     }
 
     // Record button toggle
     if (elements.recordButton) {
         elements.recordButton.addEventListener('click', function () {
+            void hapticTap();
             toggleRecording(elements, { isDualMode: getIsDualMode(), currentUser: getCurrentUser() });
         });
     }
@@ -165,12 +169,14 @@ export function setupEventListeners(elements, callbacks = {}) {
         elements.sourceLanguage.addEventListener('change', function () {
             populateExtraTargetCheckboxes(elements);
             refreshDualMicLabels(elements);
+            refreshRecordButtonLabels(elements);
         });
     }
     if (elements.targetLanguage) {
         elements.targetLanguage.addEventListener('change', function () {
             populateExtraTargetCheckboxes(elements);
             refreshDualMicLabels(elements);
+            refreshRecordButtonLabels(elements);
         });
     }
 
@@ -419,12 +425,40 @@ export function setupEventListeners(elements, callbacks = {}) {
         });
     }
 
-    // Settings toggle
+    // Settings toggle → bottom sheet
     if (elements.settingsToggle && elements.settingsPanel) {
         elements.settingsToggle.addEventListener('click', function () {
-            const expanded = this.getAttribute('aria-expanded') === 'true';
-            this.setAttribute('aria-expanded', String(!expanded));
-            elements.settingsPanel.classList.toggle('open');
+            const isOpen = elements.settingsPanel.classList.contains('open');
+            if (isOpen) closeSheet(elements);
+            else openSheet(elements);
+        });
+    }
+
+    // 模型 chip：header 上顯示當前模型，點擊直接開 sheet 的模型段
+    const modelChip = document.getElementById('modelChip');
+    if (modelChip) {
+        modelChip.addEventListener('click', function () {
+            openSheet(elements);
+            document.getElementById('modelBar')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
+    }
+
+    // dock 右側：清除「目前譯文」，不是清歷史（清歷史在歷史分頁）
+    const dockClear = document.getElementById('dockClear');
+    if (dockClear) {
+        dockClear.addEventListener('click', function () {
+            const translations = _getTranslations();
+            const waiting = translations.waitingTranslation || '等待翻譯...';
+            if (getIsDualMode()) {
+                elements.dualSourceText.textContent = translations.waitingInput || '等待輸入...';
+                elements.dualTargetText.textContent = waiting;
+                elements.englishText.textContent = waiting;
+            } else {
+                elements.sourceText.textContent = translations.waitingVoiceInput || '等待語音輸入...';
+                elements.targetText.textContent = waiting;
+                elements.englishTextSingle.textContent = waiting;
+            }
+            if (elements.playTranslation) elements.playTranslation.disabled = true;
         });
     }
 
@@ -611,6 +645,7 @@ export function swapLanguages(elements) {
         // ignore persistence failures
     }
     if (getIsDualMode()) updateUserLabels(elements);
+    refreshRecordButtonLabels(elements);
 }
 
 // ========== Theme ==========
@@ -757,6 +792,86 @@ export function closeConfirmClearModal() {
     _elements.clearHistory?.focus();
 }
 
+// ========== Tabs & Bottom Sheet ==========
+
+/**
+ * 2 個主分頁（翻譯 / 歷史）。tab 的 48px 佈局本身就是命中盒，
+ * 指示條只在兩個等寬 tab 之間平移，不做負 margin，避免與下方分段命中盒相接。
+ */
+export function initTabs() {
+    const tabs = Array.from(document.querySelectorAll('.tab[role="tab"]'));
+    const indicator = document.querySelector('.tab-indicator');
+    if (!tabs.length) return;
+
+    const select = (tab) => {
+        tabs.forEach((item) => {
+            const active = item === tab;
+            item.setAttribute('aria-selected', String(active));
+            item.tabIndex = active ? 0 : -1;
+            const panel = document.getElementById(item.getAttribute('aria-controls'));
+            if (panel) panel.classList.toggle('hidden', !active);
+        });
+        if (indicator) {
+            const index = Math.max(0, tabs.indexOf(tab));
+            indicator.style.transform = `translateX(${index * 100}%)`;
+        }
+        // 分頁切換後把焦點留在 tab 上，避免焦點掉進被隱藏的面板
+        tab.focus({ preventScroll: true });
+    };
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => select(tab));
+        tab.addEventListener('keydown', (event) => {
+            if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+            event.preventDefault();
+            const index = tabs.indexOf(tab);
+            const delta = event.key === 'ArrowRight' ? 1 : tabs.length - 1;
+            const next = tabs[(index + delta) % tabs.length];
+            select(next);
+        });
+    });
+}
+
+export function openSheet(elements) {
+    const panel = elements?.settingsPanel || document.getElementById('settingsPanel');
+    if (!panel) return;
+    const backdrop = document.getElementById('sheetBackdrop');
+    if (backdrop) {
+        backdrop.hidden = false;
+        requestAnimationFrame(() => backdrop.classList.add('open'));
+    }
+    panel.classList.add('open');
+    document.body.classList.add('sheet-open');
+    elements?.settingsToggle?.setAttribute('aria-expanded', 'true');
+    document.getElementById('settingsSheetClose')?.focus({ preventScroll: true });
+}
+
+export function closeSheet(elements) {
+    const panel = elements?.settingsPanel || document.getElementById('settingsPanel');
+    if (!panel) return;
+    const backdrop = document.getElementById('sheetBackdrop');
+    panel.classList.remove('open');
+    document.body.classList.remove('sheet-open');
+    elements?.settingsToggle?.setAttribute('aria-expanded', 'false');
+    if (backdrop) {
+        backdrop.classList.remove('open');
+        window.setTimeout(() => {
+            if (!panel.classList.contains('open')) backdrop.hidden = true;
+        }, 200);
+    }
+    elements?.settingsToggle?.focus({ preventScroll: true });
+}
+
+/** 接上 backdrop / 關閉鈕；開啟由 settingsToggle 與 modelChip 觸發。 */
+export function initSheets(elements) {
+    const panel = elements?.settingsPanel || document.getElementById('settingsPanel');
+    if (!panel) return;
+    const backdrop = document.getElementById('sheetBackdrop');
+    const closeBtn = document.getElementById('settingsSheetClose');
+    closeBtn?.addEventListener('click', () => closeSheet(elements));
+    backdrop?.addEventListener('click', () => closeSheet(elements));
+}
+
 // ========== Keyboard Shortcuts ==========
 
 function isDualVoiceChatActive() {
@@ -781,6 +896,11 @@ export function handleGlobalKeydown(event, elements, callbacks) {
 
     // Esc - close modals first, then stop recording
     if (event.key === 'Escape') {
+        if (document.querySelector('.sheet.open')) {
+            event.preventDefault();
+            closeSheet(_elements);
+            return;
+        }
         if (_elements?.shortcutsModal?.classList.contains('open')) {
             event.preventDefault();
             closeShortcutsModal();

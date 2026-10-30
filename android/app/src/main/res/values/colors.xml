@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 這三個是 AppCompat 主題需要的名稱，不是設計 token；
+         顏色值與 web 的 --color-primary / --color-accent 一致 -->
+    <color name="colorPrimary">#2563EB</color>
+    <color name="colorPrimaryDark">#1D4ED8</color>
+    <color name="colorAccent">#7C3AED</color>
+
+    <!-- Splash：light 值。深色由 values-night/colors.xml 覆蓋（同一名稱） -->
+    <color name="splashBackground">#F1F5F9</color>
+</resources>

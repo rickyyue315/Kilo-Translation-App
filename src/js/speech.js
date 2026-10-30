@@ -1,7 +1,12 @@
 // Kilo Translation App - Speech Recognition & Synthesis
+//
+// 兩條錄音路徑（由 capabilities.js 決定，不由本檔猜）：
+//   web  + Web Speech 可用 → 即時逐字
+//   native / Web Speech 不可用 → MediaRecorder → 後端 ASR（/api/transcribe）
+// 朗讀一律走 tts.js 適配層（原生插件 / speechSynthesis），不在這裡直接碰 speechSynthesis。
+
 import { t } from './i18n.js';
-import { isMobileDevice, isIOSDevice, isSafariBrowser } from './utils.js';
-import { languageMap } from './models.js';
+import { isIOSDevice } from './utils.js';
 import {
   getSavedAsrModel,
   isVoiceConversationSupported,
@@ -9,6 +14,13 @@ import {
   transcribeAudio,
   transcribeAudioDirect,
 } from './asr.js';
+import { speak, stopSpeaking, isSpeechAvailable } from './tts.js';
+import {
+  checkMicPermission,
+  requestMicPermission,
+  openAppSettings,
+  hapticTap,
+} from './capabilities.js';
 import {
   startChatTimer,
   stopChatTimer,
@@ -32,6 +44,8 @@ let mediaChunks = [];
 let voiceConversationActive = false;
 // Which dual-mic side is recording ('A' | 'B' | null); cleared on stop.
 let activeDualSide = null;
+// 語音對話錄音中是否正在朗讀（朗讀時不搶麥）
+let isSpeaking = false;
 
 // Stored callbacks from initialization
 let _callbacks = {};
@@ -68,6 +82,9 @@ export function setIsRecording(value) {
 /**
  * Initialize the Web Speech API SpeechRecognition.
  *
+ * 注意：WebView 沒有這個 API 是「預期行為」，不是錯誤。
+ * 只有連 MediaRecorder 都沒有的裝置才真的不能錄音（textOnly）。
+ *
  * @param {object} elements - DOM element references
  * @param {object} callbacks - Callback functions:
  *   { onTranslate, updateStatus, showError, hideError }
@@ -75,16 +92,22 @@ export function setIsRecording(value) {
 export function initializeSpeechRecognition(elements, callbacks) {
     _callbacks = callbacks;
 
+    // 干擾處理：切背景 / 通話中斷 / 耳機拔出都必須停止錄音，但保留已辨識文字
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && isRecording) {
+            stopRecording(elements);
+            _callbacks.updateStatus?.('ready', t('statusReady') || '準備就緒');
+        }
+    });
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         console.warn('SpeechRecognition not available in this browser');
         if (!isVoiceConversationSupported()) {
-            _callbacks.showError(t('browserNotSupported') || '此瀏覽器不支援語音辨識功能');
-            if (elements.recordButton) {
-                elements.recordButton.disabled = true;
-            }
+            // 真正的 textOnly：麥克風入口由 main.js 依能力報告收掉
+            console.warn('語音對話路徑也不可用（無 MediaRecorder），進入 textOnly 模式');
         } else {
-            console.warn('Web Speech API 缺失，但仍可使用語音對話（OpenRouter ASR）模式');
+            console.warn('Web Speech API 缺失，改用語音對話（後端 ASR）路徑');
         }
         return;
     }
@@ -96,7 +119,6 @@ export function initializeSpeechRecognition(elements, callbacks) {
     recognition.lang = elements.sourceLanguage.value;
 
     recognition.onstart = function() {
-        console.log('語音辨識已開始');
         _callbacks.updateStatus('recording', t('statusRecording') || '正在聆聽...');
         if (elements.volumeIndicator) {
             elements.volumeIndicator.classList.add('active');
@@ -126,6 +148,17 @@ export function initializeSpeechRecognition(elements, callbacks) {
 
     recognition.onerror = function(event) {
         console.error('語音辨識錯誤:', event.error);
+
+        // 降級而非報錯收工：Web Speech 掛掉時直接改走後端 ASR
+        if ((event.error === 'not-allowed' || event.error === 'network') && isVoiceConversationSupported()) {
+            isRecording = false;
+            startVoiceConversation(elements, {
+                isDualMode: false,
+                currentUser: 'A',
+            });
+            return;
+        }
+
         let errorMessage = t('statusError') || '語音辨識發生錯誤: ';
 
         switch(event.error) {
@@ -150,7 +183,6 @@ export function initializeSpeechRecognition(elements, callbacks) {
     };
 
     recognition.onend = function() {
-        console.log('語音辨識已結束');
         if (isRecording) {
             recognition.start();
         } else {
@@ -200,8 +232,101 @@ export async function toggleDualMic(elements, side) {
     }
     activeDualSide = side;
     setDualMicActive(side);
-    startRecording(elements, { isDualMode: true, currentUser: side, speaker: side });
+    await startRecording(elements, { isDualMode: true, currentUser: side, speaker: side });
     return true;
+}
+
+/**
+ * 麥克風權限「先判後要」。
+ * 首次：先出 App 內說明 → 再請求系統權限
+ * 拒絕一次：仍可再要（但每次都先出說明，不自動彈系統框）
+ * 永久拒絕：不彈框，deep-link 到系統設定頁
+ *
+ * @param {object} elements
+ * @returns {Promise<boolean>} 是否可繼續錄音
+ */
+async function ensureMicPermission(elements) {
+    const state = await checkMicPermission();
+
+    if (state === 'granted' || state === 'unavailable') return true;
+
+    // 永久拒絕：不彈系統框（彈了也不會出現），一步帶到系統設定
+    if (state === 'denied') {
+        const opened = await showBlockedNotice(elements);
+        if (opened) {
+            await openAppSettings();
+            _callbacks.showError?.(t('micEnableInSettings') || '請在系統設定中允許麥克風，返回後再按一次');
+        }
+        return false;
+    }
+
+    // state === 'prompt'：先說明用途，使用者同意後才請求。
+    // 拒絕過一次也是 prompt —— 所以每次都會先出說明，不會自動彈系統框。
+    const agreed = await showMicRationale();
+    if (!agreed) return false;
+
+    const granted = await requestMicPermission();
+    if (granted === 'granted') return true;
+
+    if (granted === 'blocked') {
+        const opened = await showBlockedNotice(elements);
+        if (opened) {
+            await openAppSettings();
+            _callbacks.showError?.(t('micEnableInSettings') || '請在系統設定中允許麥克風，返回後再按一次');
+        }
+        return false;
+    }
+
+    _callbacks.showError?.(t('microphonePermissionDenied') || '麥克風權限被拒絕');
+    return false;
+}
+
+/** App 內說明（後端無法在系統框前插話，所以自己出一個）。 */
+function showMicRationale() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('micRationaleModal');
+        if (!modal) {
+            // 沒有 modal（舊版 HTML / 測試環境）時不硬擋
+            resolve(true);
+            return;
+        }
+        const close = (value) => {
+            modal.classList.remove('open');
+            modal.querySelector('#micRationaleAllow')?.removeEventListener('click', onAllow);
+            modal.querySelector('#micRationaleCancel')?.removeEventListener('click', onCancel);
+            resolve(value);
+        };
+        const onAllow = () => close(true);
+        const onCancel = () => close(false);
+        modal.querySelector('#micRationaleAllow')?.addEventListener('click', onAllow);
+        modal.querySelector('#micRationaleCancel')?.addEventListener('click', onCancel);
+        modal.classList.add('open');
+        modal.querySelector('#micRationaleAllow')?.focus();
+    });
+}
+
+/** 永久拒絕後的一步救援。 */
+function showBlockedNotice(elements) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('micBlockedModal');
+        if (!modal) {
+            _callbacks.showError?.(t('micBlockedHint') || '麥克風權限已被永久關閉，請至系統設定開啟');
+            resolve(false);
+            return;
+        }
+        const close = (value) => {
+            modal.classList.remove('open');
+            modal.querySelector('#micBlockedOpenSettings')?.removeEventListener('click', onOpen);
+            modal.querySelector('#micBlockedCancel')?.removeEventListener('click', onCancel);
+            resolve(value);
+        };
+        const onOpen = () => close(true);
+        const onCancel = () => close(false);
+        modal.querySelector('#micBlockedOpenSettings')?.addEventListener('click', onOpen);
+        modal.querySelector('#micBlockedCancel')?.addEventListener('click', onCancel);
+        modal.classList.add('open');
+        void elements;
+    });
 }
 
 /**
@@ -209,7 +334,17 @@ export async function toggleDualMic(elements, side) {
  * @param {object} elements
  * @param {object} [options] { isDualMode, currentUser, speaker }
  */
-export function startRecording(elements, options = {}) {
+export async function startRecording(elements, options = {}) {
+    if (navigator.onLine === false) {
+        _callbacks.showError?.(t('statusOffline') || '目前離線，語音功能不可用；文字翻譯仍可正常使用');
+        return;
+    }
+
+    const permitted = await ensureMicPermission(elements);
+    if (!permitted) return;
+
+    void hapticTap();
+
     const voiceChat = isVoiceConversationMode(elements);
     if (voiceChat || !recognition) {
         if (isVoiceConversationSupported()) {
@@ -295,6 +430,11 @@ export async function startVoiceConversation(elements, options = {}) {
     return;
   }
 
+  // 朗讀中不搶麥：先停朗讀，避免把自己的聲音錄進去
+  if (isSpeaking) {
+    await stopSpeaking();
+  }
+
   const sourceLang = isDualMode && currentUser === 'B'
     ? elements.targetLanguage.value
     : elements.sourceLanguage.value;
@@ -304,9 +444,25 @@ export async function startVoiceConversation(elements, options = {}) {
     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch (error) {
     console.error('無法存取麥克風:', error);
-    _callbacks.showError(t('microphonePermissionDenied') || '麥克風權限被拒絕。請在瀏覽器設置中允許麥克風存取權限。');
+    if (error?.name === 'NotAllowedError') {
+      _callbacks.showError(t('microphonePermissionDenied') || '麥克風權限被拒絕。請在設定中允許麥克風存取權限。');
+    } else if (error?.name === 'NotReadableError') {
+      _callbacks.showError(t('microphoneNotReadable') || '麥克風被其他應用程式佔用，請關閉後再試');
+    } else {
+      _callbacks.showError(t('audioCaptureError') || '無法存取麥克風');
+    }
     return;
   }
+
+  // 耳機拔出 / 系統搶麥：音軌 ended 時立即停止，不錄靜音軌
+  mediaStream.getAudioTracks().forEach((track) => {
+    track.addEventListener('ended', () => {
+      if (voiceConversationActive) {
+        stopVoiceConversation(elements);
+        _callbacks.showError?.(t('audioInterrupted') || '音訊中斷（耳機拔出或裝置被佔用），已停止錄音');
+      }
+    });
+  });
 
   mediaChunks = [];
   const mimeType = pickRecorderMimeType();
@@ -418,158 +574,112 @@ function stopVoiceConversation(elements) {
 }
 
 /**
- * Update the visual state of the record button.
+ * 唯一的錄音狀態出口。
+ *
+ * 規則四（唯一真相）：`[aria-pressed]` 是唯一狀態源，同時驅動
+ * 圖示形狀（.icon-mic / .icon-stop）、aria-pressed、aria-label、CSS 環與盤面。
+ * 形狀必須與語意同源 —— 畫面是停止方塊而 TalkBack 唸「開始錄音」即判失敗。
+ *
  * @param {object} elements
  * @param {boolean} recording
  */
 function _updateRecordButton(elements, recording) {
     if (!elements.recordButton) return;
-    elements.recordButton.classList.toggle('recording', recording);
-    elements.recordButton.setAttribute('aria-pressed', String(recording));
-    elements.recordButton.setAttribute('aria-label', recording
-        ? (t('stopRecording') || '停止錄音')
-        : (t('startRecording') || '開始錄音'));
+    const button = elements.recordButton;
+    button.classList.toggle('recording', recording);
+    button.setAttribute('aria-pressed', String(recording));
+    button.setAttribute('aria-label', describeRecordButton(recording, elements));
+
+    // A/B 兩顆麥：label 也必須跟著狀態換，否則 TalkBack 只會唸「按鈕」
+    ['A', 'B'].forEach((side) => {
+        const btn = document.getElementById(side === 'A' ? 'dualMicA' : 'dualMicB');
+        if (!btn) return;
+        const isActive = recording && activeDualSide === side;
+        btn.setAttribute('aria-pressed', String(isActive));
+        btn.classList.toggle('is-recording', isActive);
+        btn.setAttribute('aria-label', describeDualMic(side, isActive, elements));
+    });
+
     if (elements.volumeIndicator) {
         elements.volumeIndicator.classList.toggle('active', recording);
     }
 }
 
 /**
- * Play the translated text using the SpeechSynthesis API.
+ * 焦點 / 語意文字：角色 + 語言 + 狀態。
+ * 切換介面語言時由 speech.js 的 refreshRecordButtonLabels() 重跑。
+ */
+function describeRecordButton(recording, elements) {
+    const lang = elements?.sourceLanguage?.selectedOptions?.[0]?.textContent?.trim() || '';
+    const base = recording
+        ? (t('stopRecording') || '停止錄音')
+        : (t('startRecording') || '開始錄音');
+    if (!lang) return base;
+    return recording ? `${base}，${lang}` : `${base}，${lang}`;
+}
+
+function describeDualMic(side, recording, elements) {
+    const nameKey = side === 'A' ? 'userA' : 'userB';
+    const name = t(nameKey) || `使用者 ${side}`;
+    const langCode = side === 'A' ? elements?.sourceLanguage?.value : elements?.targetLanguage?.value;
+    const lang = elements?.[side === 'A' ? 'sourceLanguage' : 'targetLanguage']?.selectedOptions?.[0]?.textContent?.trim()
+        || langCode || '';
+    const stateText = recording
+        ? (t('statusRecording') || '錄音中')
+        : (t('startRecording') || '開始錄音');
+    return `${name}，${lang}，${stateText}`;
+}
+
+/** 介面語言切換後重跑 label（不得各自維護開關）。 */
+export function refreshRecordButtonLabels(elements) {
+    if (!elements?.recordButton) return;
+    const recording = elements.recordButton.getAttribute('aria-pressed') === 'true';
+    elements.recordButton.setAttribute('aria-label', describeRecordButton(recording, elements));
+    ['A', 'B'].forEach((side) => {
+        const btn = document.getElementById(side === 'A' ? 'dualMicA' : 'dualMicB');
+        if (!btn) return;
+        const isActive = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-label', describeDualMic(side, isActive, elements));
+    });
+}
+
+/**
+ * Play the translated text using the TTS adapter (native plugin / web speechSynthesis).
  * @param {object} elements
  */
-export function playTranslation(elements, textOverride, langOverride) {
-    const readText = (textOverride ?? elements.targetText.textContent ?? '').trim();
-    const readLang = langOverride || elements.targetLanguage.value;
+export async function playTranslation(elements, textOverride, langOverride) {
+    const readText = (textOverride ?? elements.targetText?.textContent ?? '').trim();
+    const readLang = langOverride || elements.targetLanguage?.value;
     if (!readText || readText === (t('waitingTranslation') || '等待翻譯...')) {
         _callbacks.showError(t('noContentToRead') || '沒有可朗讀的翻譯內容');
         return;
     }
 
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(readText);
-    utterance.lang = readLang;
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-
-    const isIOS = isIOSDevice();
-    if (isIOS) {
-        utterance.rate = 0.8;
-        if (readText.length > 200) {
-            const sentences = readText.split(/[.!?。！？]/);
-            if (sentences.length > 1) {
-                speakSentences(sentences, readLang, elements);
-                return;
-            }
-        }
+    if (!isSpeechAvailable()) {
+        _callbacks.showError(t('speechSynthesisNotSupported') || '此裝置不支援語音朗讀，請直接閱讀文字');
+        return;
     }
 
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-        const targetVoice = voices.find(voice =>
-            voice.lang.startsWith(readLang.split('-')[0])
-        );
-        if (targetVoice) {
-            utterance.voice = targetVoice;
-        }
-    }
+    isSpeaking = true;
+    if (elements.playTranslation) elements.playTranslation.disabled = true;
+    _callbacks.updateStatus('speaking', t('statusSpeaking') || '正在朗讀...');
 
-    utterance.onstart = function() {
-        _callbacks.updateStatus('speaking', t('statusSpeaking') || '正在朗讀...');
-        elements.playTranslation.disabled = true;
-    };
+    const result = await speak(readText, readLang, {
+        rate: 0.9,
+        onError: (message) => {
+            _callbacks.showError(message);
+            _callbacks.updateStatus('error', t('statusError') || '朗讀失敗');
+        },
+    });
 
-    utterance.onend = function() {
+    isSpeaking = false;
+    if (elements.playTranslation) elements.playTranslation.disabled = false;
+    if (!result.error && !result.cancelled) {
         _callbacks.updateStatus('ready', t('statusReady') || '準備就緒');
-        elements.playTranslation.disabled = false;
-    };
-
-    utterance.onerror = function(event) {
-        console.error('語音合成錯誤:', event.error);
-        let errorMessage = t('speechSynthesisNotSupported') || '語音合成失敗: ';
-
-        switch(event.error) {
-            case 'network':
-                errorMessage += t('networkError') || '網路錯誤';
-                break;
-            case 'synthesis-unavailable':
-                errorMessage += '語音合成服務不可用';
-                break;
-            case 'language-unavailable':
-                errorMessage += '不支援的語言';
-                break;
-            case 'voice-unavailable':
-                errorMessage += '不支援的語音';
-                break;
-            case 'text-too-long':
-                errorMessage += '文字過長';
-                break;
-            case 'rate-not-supported':
-                errorMessage += '不支援的語速';
-                break;
-            case 'canceled':
-                _callbacks.updateStatus('ready', t('statusReady') || '準備就緒');
-                elements.playTranslation.disabled = false;
-                return;
-            default:
-                errorMessage += event.error;
-        }
-
-        _callbacks.showError(errorMessage);
-        _callbacks.updateStatus('error', t('statusError') || '朗讀失敗');
-        elements.playTranslation.disabled = false;
-    };
-
-    if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.addEventListener('voiceschanged', function() {
-            window.speechSynthesis.speak(utterance);
-        }, { once: true });
-    } else {
-        window.speechSynthesis.speak(utterance);
     }
 }
 
-/**
- * Speak long text in chunks (for iOS Safari compatibility).
- * @param {string[]} sentences
- * @param {string} lang
- * @param {object} elements
- */
-function speakSentences(sentences, lang, elements) {
-    let index = 0;
-
-    function speakNext() {
-        if (index >= sentences.length) {
-            _callbacks.updateStatus('ready', t('statusReady') || '準備就緒');
-            elements.playTranslation.disabled = false;
-            return;
-        }
-
-        const sentence = sentences[index].trim();
-        if (sentence) {
-            const utterance = new SpeechSynthesisUtterance(sentence);
-            utterance.lang = lang;
-            utterance.rate = 0.8;
-            utterance.volume = 1;
-
-            utterance.onend = function() {
-                index++;
-                speakNext();
-            };
-
-            utterance.onerror = function() {
-                index++;
-                speakNext();
-            };
-
-            window.speechSynthesis.speak(utterance);
-        } else {
-            index++;
-            speakNext();
-        }
-    }
-
-    speakNext();
+/** 供外部（如語音對話自動朗讀）判斷目前是否在朗讀。 */
+export function getIsSpeaking() {
+    return isSpeaking;
 }

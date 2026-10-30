@@ -235,20 +235,14 @@ const REPLAY_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
 const COPY_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
 
 function replayTurn(text, lang) {
-    try {
-        if (!text || !('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = lang || 'en-US';
-        utterance.rate = 0.9;
-        const voices = window.speechSynthesis.getVoices() || [];
-        const prefix = String(utterance.lang).split('-')[0];
-        const voice = voices.find((v) => v.lang.startsWith(prefix));
-        if (voice) utterance.voice = voice;
-        window.speechSynthesis.speak(utterance);
-    } catch {
-        // ignore TTS failures on turn replay
-    }
+    if (!text) return;
+    // 動態載入 TTS 適配層：本檔刻意零靜態依賴（避免 speech/translation 的循環），
+    // 而 native 容器裡 speechSynthesis 不可用，重播必須走同一個出口。
+    void import('./tts.js')
+        .then(({ speak }) => speak(text, lang || 'en-US', { rate: 0.9 }))
+        .catch(() => {
+            // ignore TTS failures on turn replay
+        });
 }
 
 function copyTurn(text) {
@@ -464,7 +458,9 @@ export function setDualMicActive(side) {
     [btnA, btnB].forEach((btn) => {
         if (btn) {
             btn.classList.remove('is-active');
-            btn.removeAttribute('aria-pressed');
+            // 不可以 removeAttribute：aria-pressed 是唯一狀態源，
+            // 移除會讓 CSS（[aria-pressed="true"]）與 TalkBack 都讀不到「未錄音」這個狀態。
+            btn.setAttribute('aria-pressed', 'false');
         }
     });
     const panel = $('voiceChatPanel');
