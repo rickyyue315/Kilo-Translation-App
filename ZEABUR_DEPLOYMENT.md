@@ -8,7 +8,7 @@
 瀏覽器 ──► node server.js（Zeabur / Docker / 本機）
               ├─ 靜態檔：dist/（Vite build 產物）
               ├─ POST /api/translate   → OpenRouter 翻譯
-              ├─ POST /api/transcribe  → OpenRouter ASR（4 個語音模型）
+              ├─ POST /api/transcribe  → OpenRouter ASR（8 個語音模型）
               └─ GET  /api/health      → 健康檢查
 ```
 
@@ -43,14 +43,21 @@ Netlify 部署方式不受影響。
 前端錄音（MediaRecorder）→ 後端 `/api/transcribe` →
 OpenRouter `POST /api/v1/audio/transcriptions`（base64 JSON 格式）。
 
-可在頂部 Model Bar 切換 4 個 ASR 模型（https://openrouter.ai/）：
+可在頂部 Model Bar 切換 8 個 ASR 模型（https://openrouter.ai/）：
 
-| 模型 ID | 提供者 | 特性 |
-|---------|--------|------|
-| `mistralai/voxtral-mini-transcribe`（預設） | Mistral | 輕量 STT，會議/語音筆記/播客 |
-| `microsoft/mai-transcribe-2` | Microsoft | 多語言 STT，FLEURS 基準領先 |
-| `qwen/qwen3-asr-1.7b` | Qwen | 30 語言 + 22 種中文方言，串流/離線 |
-| `nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b` | NVIDIA | 低延遲串流，40+ 語言 |
+| 模型 ID | 提供者 | 特性 | 價格 |
+|---------|--------|------|------|
+| `microsoft/mai-transcribe-2`（預設） | Microsoft | 多語言 STT，FLEURS 基準領先 | $0.10/h |
+| `nvidia/nemotron-3.5-transcribe` | NVIDIA | 30B MoE，40 語言，單段 1 小時，說話人分離＋詞彙提示 | $0.12/h |
+| `assemblyai/universal-3-6-pro` | AssemblyAI | 短句對話錯誤率最低，詞級時間戳 | $0.30/h |
+| `elevenlabs/scribe-v2` | ElevenLabs | 90+ 語言，音訊事件標註 | $0.22/h |
+| `mistralai/voxtral-small-transcribe-3-0` | Mistral | 時間戳＋說話人分離＋領域詞彙偏置 | $0.2412/h |
+| `qwen/qwen3-asr-1.7b` | Qwen | 30 語言 + 22 種中文方言 | $0.0288/h |
+| `nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b` | NVIDIA | 低延遲串流，40+ 語言 | $0.0108/h |
+| `mistralai/voxtral-mini-transcribe` | Mistral | 輕量 STT，會議/語音筆記/播客 | $0.18/h |
+
+模型 ID 與價格的唯一來源是 `src/js/modelCatalog.js`，此表只是鏡像；
+改完跑 `npm run check:models` 確認沒有模型下架或調價。
 
 三種輸入模式（單人/雙人各一組）：
 

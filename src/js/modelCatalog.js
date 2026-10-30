@@ -1,7 +1,8 @@
 /**
  * Model catalogue — the single source of truth for every model ID the app ships.
  *
- * Verified against https://openrouter.ai/api/v1/models on 2026-10-19.
+ * Verified against https://openrouter.ai/api/v1/models on 2026-10-19;
+ * transcription models re-checked on 2026-10-30.
  * Re-verify at any time with:  npm run check:models
  *
  * Prices are USD per 1M tokens for chat models, and USD per hour of audio for
@@ -21,9 +22,9 @@ export const MODEL_CATALOG = {
   'z-ai/glm-5.3-flash': {
     name: '智譜 GLM 5.3 Flash',
     tier: 'value',
-    note: '每百萬 $0.048/$0.20，智力 41.8，1M 上下文；同價位最高分，預設首選',
-    input: 0.048,
-    output: 0.2,
+    note: '每百萬 $0.0477/$0.0701，智力 41.8，1M 上下文；輸出已降到全場最低，同價位最高分，預設首選',
+    input: 0.0477,
+    output: 0.0701,
     context: 1048576,
     iq: 41.8,
   },
@@ -41,16 +42,16 @@ export const MODEL_CATALOG = {
     tier: 'value',
     note: '翻譯專用：33 語言對＋5 種中文方言，支援術語表；8K 上下文',
     input: 0.074,
-    output: 0.29,
+    output: 0.295,
     context: 8192,
     iq: null,
   },
   'deepseek/deepseek-v4-flash-0731': {
     name: 'DeepSeek V4 Flash 0731',
     tier: 'value',
-    note: '每百萬 $0.15/$0.15，輸出最便宜，智力 34.3',
-    input: 0.15,
-    output: 0.15,
+    note: '每百萬 $0.119/$0.238，智力 34.3；輸入價仍是 GLM 5.3 Flash 的 2.5 倍',
+    input: 0.119,
+    output: 0.238,
     context: 1048576,
     iq: 34.3,
   },
@@ -68,9 +69,9 @@ export const MODEL_CATALOG = {
   'z-ai/glm-5.3': {
     name: '智譜 GLM 5.3',
     tier: 'top',
-    note: '每百萬 $0.079/$1.40，智力 44.8；三步精譯的反思品質明顯更好',
-    input: 0.079,
-    output: 1.4,
+    note: '每百萬 $0.08/$3.60，智力 44.8；反思品質最好，但輸出單價已漲到 Flash 的 51 倍，只值得用在長文精譯',
+    input: 0.08,
+    output: 3.6,
     context: 1048576,
     iq: 44.8,
   },
@@ -86,18 +87,18 @@ export const MODEL_CATALOG = {
   'tencent/hy4-preview': {
     name: 'Tencent Hy4 Preview',
     tier: 'top',
-    note: '每百萬 $0.834/$2.50，1M 上下文旗艦，長文與專業領域',
+    note: '每百萬 $0.834/$2.501，1M 上下文旗艦，長文與專業領域',
     input: 0.834,
-    output: 2.5,
+    output: 2.501,
     context: 1048576,
     iq: null,
   },
   'tencent/hy3': {
     name: 'Tencent Hy3',
     tier: 'top',
-    note: '每百萬 $0.132/$0.53，262K 上下文，中英互譯穩健',
+    note: '每百萬 $0.132/$0.528，262K 上下文，中英互譯穩健',
     input: 0.132,
-    output: 0.53,
+    output: 0.528,
     context: 262144,
     iq: null,
   },
@@ -115,6 +116,8 @@ export const MODEL_CATALOG = {
   // 注意：thinkingmachines/inkling 系列與 google/gemma-4-31b-it 雖然標示 free，
   // 但實際調用會回 403「only available on agentic harnesses」，一般應用無法使用，
   // 2026-10-19 實測後移除，勿再加回。
+  // nvidia/nemotron-3-super-120b-a12b:free 於 2026-10-30 從 /api/v1/models 消失
+  // （endpoints 仍回 200，但已不在公開目錄），依「下架即移除」規則剔除。
   'nvidia/nemotron-3-ultra-550b-a55b:free': {
     name: 'NVIDIA Nemotron 3 Ultra',
     tier: 'free',
@@ -123,17 +126,6 @@ export const MODEL_CATALOG = {
     output: 0,
     context: 1000000,
     iq: 22.9,
-  },
-
-
-  'nvidia/nemotron-3-super-120b-a12b:free': {
-    name: 'NVIDIA Nemotron 3 Super 120B',
-    tier: 'free',
-    note: '免費，262K 上下文；實測可用，最後備援',
-    input: 0,
-    output: 0,
-    context: 262144,
-    iq: 12.8,
   },
   'google/gemma-4-26b-a4b-it:free': {
     name: 'Gemma 4 26B A4B',
@@ -173,7 +165,6 @@ export const MODEL_ORDER = {
     'nvidia/nemotron-3-ultra-550b-a55b:free',
     'nvidia/nemotron-3.5-super-vl:free',
     'google/gemma-4-26b-a4b-it:free',
-    'nvidia/nemotron-3-super-120b-a12b:free',
     'dots-studio/dots-3-note-preview:free',
   ],
 };
@@ -195,7 +186,9 @@ export const SERVER_PAID_MODELS = [
 export const DEFAULT_MODEL = 'z-ai/glm-5.3-flash';
 
 // ── Speech to text ────────────────────────────────────────
-// Prices are USD per hour of audio. All four verified live on 2026-10-19.
+// Prices are USD per hour of audio (OpenRouter bills per second; ×3600 here).
+// All eight verified live on 2026-10-30 against
+// https://openrouter.ai/api/v1/models?output_modalities=transcription
 
 export const ASR_MODELS = {
   'microsoft/mai-transcribe-2': {
@@ -204,6 +197,34 @@ export const ASR_MODELS = {
     pricePerHour: 0.1,
     description: 'FLEURS 多語言第 1，60 語言＋語碼混合，$0.10/小時；預設首選',
     descriptionEn: 'No.1 on FLEURS multilingual, 60 languages with code-switching, $0.10/hour',
+  },
+  'nvidia/nemotron-3.5-transcribe': {
+    name: 'Nemotron 3.5 Transcribe',
+    vendor: 'NVIDIA',
+    pricePerHour: 0.12,
+    description: '30B MoE，40 語言、單段最長 1 小時，支援說話人分離與詞彙／風格提示，$0.12/小時；2026-10 新模型，長對話與術語密集場景首選',
+    descriptionEn: '30B MoE, 40 languages, up to 1 hour per clip, speaker attribution plus vocabulary and style prompts, $0.12/hour',
+  },
+  'assemblyai/universal-3-6-pro': {
+    name: 'Universal-3.6 Pro',
+    vendor: 'AssemblyAI',
+    pricePerHour: 0.3,
+    description: '短句對話錯誤率比 3.5 Pro 再低 30%，詞級時間戳，$0.30/小時；逐句翻譯最準',
+    descriptionEn: '30% fewer errors than 3.5 Pro on short conversational speech, word-level timestamps, $0.30/hour',
+  },
+  'elevenlabs/scribe-v2': {
+    name: 'Scribe v2',
+    vendor: 'ElevenLabs',
+    pricePerHour: 0.22,
+    description: '90+ 語言，詞級時間戳、可選說話人分離與音訊事件標註，$0.22/小時；語種覆蓋最廣',
+    descriptionEn: '90+ languages with word-level timestamps, optional speaker diarization and audio-event tagging, $0.22/hour',
+  },
+  'mistralai/voxtral-small-transcribe-3-0': {
+    name: 'Voxtral Small Transcribe 3',
+    vendor: 'Mistral',
+    pricePerHour: 0.2412,
+    description: '旗艦 STT，時間戳＋說話人分離＋領域詞彙偏置，$0.24/小時；會議與訪談逐字稿',
+    descriptionEn: 'Flagship STT with timestamps, speaker diarization and context biasing, $0.24/hour — meetings and interviews',
   },
   'nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b': {
     name: 'Nemotron 3.5 ASR Streaming 0.6B',

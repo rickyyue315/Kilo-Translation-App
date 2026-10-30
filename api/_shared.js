@@ -11,11 +11,8 @@
  * ASR goes through OpenRouter's unified transcription endpoint:
  *   POST https://openrouter.ai/api/v1/audio/transcriptions
  * with a JSON body { model, input_audio: { data, format }, language? }.
- * Supported models (user-selectable):
- *   mistralai/voxtral-mini-transcribe
- *   microsoft/mai-transcribe-2
- *   qwen/qwen3-asr-1.7b
- *   nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b
+ * Supported models (user-selectable) live in src/js/modelCatalog.js — ASR_MODELS.
+ * The list is re-checked with `npm run check:models`, so add models there, never here.
  */
 
 import { STAGE, buildFastMessages, buildMessages } from '../src/js/prompts.js';
