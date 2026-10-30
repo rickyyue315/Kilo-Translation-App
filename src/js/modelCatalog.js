@@ -46,15 +46,6 @@ export const MODEL_CATALOG = {
     context: 8192,
     iq: null,
   },
-  'deepseek/deepseek-v4-flash-0731': {
-    name: 'DeepSeek V4 Flash 0731',
-    tier: 'value',
-    note: '每百萬 $0.119/$0.238，智力 34.3；輸入價仍是 GLM 5.3 Flash 的 2.5 倍',
-    input: 0.119,
-    output: 0.238,
-    context: 1048576,
-    iq: 34.3,
-  },
   'qwen/qwen3.7-flash': {
     name: 'Qwen 3.7 Flash',
     tier: 'value',
@@ -66,6 +57,15 @@ export const MODEL_CATALOG = {
   },
 
   // ── 頂級：三步精譯與長文獻用 ──────────────────────────────
+  'deepseek/deepseek-v4.1-flash-1017': {
+    name: 'DeepSeek V4.1 Flash 1017',
+    tier: 'top',
+    note: '每百萬 $0.30/$1.20，離峰（含週末）半價 $0.15/$0.60；智力 45，1M 上下文；反思品質與 GLM 5.3 同級但輸出便宜 3 倍。支援 effort=none 關閉推理，但本 app 尚未接此參數，實際會以預設 high 跑',
+    input: 0.3,
+    output: 1.2,
+    context: 1048576,
+    iq: 45,
+  },
   'z-ai/glm-5.3': {
     name: '智譜 GLM 5.3',
     tier: 'top',
@@ -159,8 +159,8 @@ export const MODEL_CATALOG = {
 
 /** Display order = fallback order for the server key. */
 export const MODEL_ORDER = {
-  value: ['z-ai/glm-5.3-flash', 'xiaomi/mimo-v2.6-flash', 'tencent/hy-mt2-30b-a3b', 'deepseek/deepseek-v4-flash-0731', 'qwen/qwen3.7-flash'],
-  top: ['z-ai/glm-5.3', 'xiaomi/mimo-v2.6-pro', 'tencent/hy4-preview', 'tencent/hy3', 'qwen/qwen3.8-flash'],
+  value: ['z-ai/glm-5.3-flash', 'xiaomi/mimo-v2.6-flash', 'tencent/hy-mt2-30b-a3b', 'qwen/qwen3.7-flash'],
+  top: ['xiaomi/mimo-v2.6-pro', 'deepseek/deepseek-v4.1-flash-1017', 'z-ai/glm-5.3', 'tencent/hy4-preview', 'tencent/hy3', 'qwen/qwen3.8-flash'],
   free: [
     'nvidia/nemotron-3-ultra-550b-a55b:free',
     'nvidia/nemotron-3.5-super-vl:free',
@@ -175,10 +175,14 @@ export const FREE_MODELS = MODEL_ORDER.free;
 /**
  * Paid models the server key may spend on, only when ALLOW_PAID_MODELS=1.
  * Deliberately short: cheap, verified, and good at translation.
+ * DeepSeek V4.1 Flash 1017 earns its slot as the reflection model for the
+ * three-pass pipeline: same intelligence as GLM 5.3 but a third of the
+ * output price, and it can run with reasoning off.
  */
 export const SERVER_PAID_MODELS = [
   'z-ai/glm-5.3-flash',
   'tencent/hy-mt2-30b-a3b',
+  'deepseek/deepseek-v4.1-flash-1017',
   'z-ai/glm-5.3',
 ];
 
